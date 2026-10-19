@@ -1,0 +1,14 @@
+{
+  "name": "Santo Rosario · Jesús por María",
+  "short_name": "Santo Rosario",
+  "description": "Santo Rosario interactivo con misterios, citas bíblicas, meditaciones y letanías.",
+  "lang": "es",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fbf8f1",
+  "theme_color": "#fbf8f1",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

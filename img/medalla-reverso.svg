@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 260" role="img" aria-label="Medalla Milagrosa, reverso">
+<defs>
+<linearGradient id="oro" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fbeec2"/><stop offset="45%" stop-color="#e3c47a"/><stop offset="100%" stop-color="#b48a3c"/></linearGradient>
+<radialGradient id="campo" cx="45%" cy="38%" r="70%"><stop offset="0%" stop-color="#f6e4b0"/><stop offset="100%" stop-color="#d4b061"/></radialGradient>
+<linearGradient id="relieve" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fff6d8"/><stop offset="55%" stop-color="#ecd08e"/><stop offset="100%" stop-color="#c29a48"/></linearGradient>
+</defs>
+<ellipse cx="100" cy="130" rx="92" ry="122" fill="url(#oro)" stroke="#6f5120" stroke-width="2"/>
+<ellipse cx="100" cy="130" rx="87" ry="117" fill="none" stroke="#fff3cc" stroke-width="1.2"/>
+<ellipse cx="100" cy="130" rx="85" ry="115" fill="none" stroke="#6f5120" stroke-width="1"/>
+<ellipse cx="100" cy="130" rx="85" ry="115" fill="url(#campo)"/>
+<polygon points="119.4,23.5 120.9,27.5 125.1,27.7 121.8,30.3 122.9,34.4 119.4,32.1 115.9,34.4 117.0,30.3 113.7,27.7 117.9,27.5" fill="url(#relieve)" stroke="#6f5120" stroke-width="0.8" stroke-linejoin="round"/>
+<polygon points="153.0,50.5 154.5,54.4 158.7,54.6 155.4,57.2 156.6,61.3 153.0,59.0 149.5,61.3 150.6,57.2 147.3,54.6 151.6,54.4" fill="url(#relieve)" stroke="#6f5120" stroke-width="0.8" stroke-linejoin="round"/>
+<polygon points="172.4,97.1 173.9,101.0 178.2,101.2 174.8,103.9 176.0,107.9 172.4,105.6 168.9,107.9 170.0,103.9 166.7,101.2 171.0,101.0" fill="url(#relieve)" stroke="#6f5120" stroke-width="0.8" stroke-linejoin="round"/>
+<polygon points="172.4,150.9 173.9,154.9 178.2,155.1 174.8,157.7 176.0,161.8 172.4,159.4 168.9,161.8 170.0,157.7 166.7,155.1 171.0,154.9" fill="url(#relieve)" stroke="#6f5120" stroke-width="0.8" stroke-linejoin="round"/>
+<polygon points="153.0,197.5 154.5,201.5 158.7,201.7 155.4,204.3 156.6,208.4 153.0,206.1 149.5,208.4 150.6,204.3 147.3,201.7 151.6,201.5" fill="url(#relieve)" stroke="#6f5120" stroke-width="0.8" stroke-linejoin="round"/>
+<polygon points="119.4,224.5 120.9,228.4 125.1,228.6 121.8,231.2 122.9,235.3 119.4,233.0 115.9,235.3 117.0,231.2 113.7,228.6 117.9,228.4" fill="url(#relieve)" stroke="#6f5120" stroke-width="0.8" stroke-linejoin="round"/>
+<polygon points="80.6,224.5 82.1,228.4 86.3,228.6 83.0,231.2 84.1,235.3 80.6,233.0 77.1,235.3 78.2,231.2 74.9,228.6 79.1,228.4" fill="url(#relieve)" stroke="#6f5120" stroke-width="0.8" stroke-linejoin="round"/>
+<polygon points="47.0,197.5 48.4,201.5 52.7,201.7 49.4,204.3 50.5,208.4 47.0,206.1 43.4,208.4 44.6,204.3 41.3,201.7 45.5,201.5" fill="url(#relieve)" stroke="#6f5120" stroke-width="0.8" stroke-linejoin="round"/>
+<polygon points="27.6,150.9 29.0,154.9 33.3,155.1 30.0,157.7 31.1,161.8 27.6,159.4 24.0,161.8 25.2,157.7 21.8,155.1 26.1,154.9" fill="url(#relieve)" stroke="#6f5120" stroke-width="0.8" stroke-linejoin="round"/>
+<polygon points="27.6,97.1 29.0,101.0 33.3,101.2 30.0,103.9 31.1,107.9 27.6,105.6 24.0,107.9 25.2,103.9 21.8,101.2 26.1,101.0" fill="url(#relieve)" stroke="#6f5120" stroke-width="0.8" stroke-linejoin="round"/>
+<polygon points="47.0,50.5 48.4,54.4 52.7,54.6 49.4,57.2 50.5,61.3 47.0,59.0 43.4,61.3 44.6,57.2 41.3,54.6 45.5,54.4" fill="url(#relieve)" stroke="#6f5120" stroke-width="0.8" stroke-linejoin="round"/>
+<polygon points="80.6,23.5 82.1,27.5 86.3,27.7 83.0,30.3 84.1,34.4 80.6,32.1 77.1,34.4 78.2,30.3 74.9,27.7 79.1,27.5" fill="url(#relieve)" stroke="#6f5120" stroke-width="0.8" stroke-linejoin="round"/>
+<rect x="95" y="30" width="10" height="92" fill="url(#relieve)" stroke="#6f5120" stroke-width="1"/>
+<rect x="78" y="46" width="44" height="9" fill="url(#relieve)" stroke="#6f5120" stroke-width="1"/>
+<path d="M62 166 L62 92 L78 92 L100 142 L122 92 L138 92 L138 166 L126 166 L126 116 L103 160 L97 160 L74 116 L74 166 Z" fill="url(#relieve)" stroke="#6f5120" stroke-width="1" stroke-linejoin="round"/>
+<rect x="57" y="164" width="22" height="5" fill="url(#relieve)" stroke="#6f5120" stroke-width="1"/>
+<rect x="57" y="88" width="22" height="5" fill="url(#relieve)" stroke="#6f5120" stroke-width="1"/>
+<rect x="121" y="164" width="22" height="5" fill="url(#relieve)" stroke="#6f5120" stroke-width="1"/>
+<rect x="121" y="88" width="22" height="5" fill="url(#relieve)" stroke="#6f5120" stroke-width="1"/>
+<rect x="52" y="120" width="96" height="8" fill="url(#relieve)" stroke="#6f5120" stroke-width="1"/>
+<path d="M68.5 196 C67.5 191.05 71.5 189.4 72 185 C72.5 189.4 76.5 191.05 75.5 196 Z" fill="url(#relieve)" stroke="#6f5120" stroke-width="0.7"/><path d="M73.5 196 C72.5 189.25 76.5 187.0 77 181 C77.5 187.0 81.5 189.25 80.5 196 Z" fill="url(#relieve)" stroke="#6f5120" stroke-width="0.7"/><path d="M78.5 196 C77.5 191.05 81.5 189.4 82 185 C82.5 189.4 86.5 191.05 85.5 196 Z" fill="url(#relieve)" stroke="#6f5120" stroke-width="0.7"/>
+<path d="M77 219 C59.5 207.1 60.900000000000006 191.7 69.72 191.7 C74.9 191.7 77 195.9 77 198.28 C77 195.9 79.1 191.7 84.28 191.7 C93.1 191.7 94.5 207.1 77 219 Z" fill="url(#relieve)" stroke="#6f5120" stroke-width="1"/>
+<polyline points="62.0,201.2 65.0,204.8 68.0,201.2 71.0,204.8 74.0,201.2 77.0,204.8 80.0,201.2 83.0,204.8 86.0,201.2 89.0,204.8 92.0,201.2" fill="none" stroke="#6f5120" stroke-width="1.1" stroke-linejoin="round"/>
+<g stroke="#6f5120" stroke-width="1.1" stroke-linecap="round"><line x1="77" y1="171" x2="77" y2="178.5"/><line x1="74" y1="173.5" x2="80" y2="173.5"/></g>
+<path d="M114.5 196 C113.5 191.05 117.5 189.4 118 185 C118.5 189.4 122.5 191.05 121.5 196 Z" fill="url(#relieve)" stroke="#6f5120" stroke-width="0.7"/><path d="M119.5 196 C118.5 189.25 122.5 187.0 123 181 C123.5 187.0 127.5 189.25 126.5 196 Z" fill="url(#relieve)" stroke="#6f5120" stroke-width="0.7"/><path d="M124.5 196 C123.5 191.05 127.5 189.4 128 185 C128.5 189.4 132.5 191.05 131.5 196 Z" fill="url(#relieve)" stroke="#6f5120" stroke-width="0.7"/>
+<path d="M123 219 C105.5 207.1 106.9 191.7 115.72 191.7 C120.9 191.7 123 195.9 123 198.28 C123 195.9 125.1 191.7 130.28 191.7 C139.1 191.7 140.5 207.1 123 219 Z" fill="url(#relieve)" stroke="#6f5120" stroke-width="1"/>
+<g stroke="#6f5120" stroke-linecap="round"><line x1="140" y1="187" x2="113" y2="219" stroke-width="1.6"/><line x1="135" y1="187.5" x2="141.5" y2="194" stroke-width="1.6"/><circle cx="141.5" cy="185.5" r="1.4" fill="#e3c47a" stroke-width="0.6"/></g>
+</svg>
