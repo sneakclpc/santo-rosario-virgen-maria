@@ -1,0 +1,44 @@
+Santo Rosario · Jesús por María
+================================
+
+Este proyecto tiene dos licencias, según el tipo de contenido:
+
+1. CÓDIGO (archivos .html, .css, .js y el service worker): licencia MIT, abajo.
+
+2. TEXTOS PROPIOS E ILUSTRACIONES (meditaciones, síntesis de los pasajes,
+   frutos de los misterios, y las imágenes de img/ y icon.svg):
+   Creative Commons Atribución-CompartirIgual 4.0 Internacional (CC BY-SA 4.0).
+   https://creativecommons.org/licenses/by-sa/4.0/deed.es
+   Puedes copiarlos, adaptarlos y compartirlos, también en parroquias y grupos,
+   citando la fuente y compartiendo los cambios con la misma licencia.
+
+No están cubiertos por estas licencias:
+- Las oraciones tradicionales de la Iglesia, que pertenecen al patrimonio común.
+- La Sagrada Biblia de la Universidad de Navarra (EUNSA): la app solo da
+  referencias y enlaces, no reproduce su texto.
+- Las fuentes tipográficas de fonts/, que tienen su propia licencia
+  (SIL Open Font License 1.1, ver fonts/OFL-*.txt).
+
+--------------------------------------------------------------------------
+
+MIT License
+
+Copyright (c) 2026 Carlos Pirela
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

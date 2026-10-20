@@ -14,6 +14,10 @@
      El texto completo se enlaza en la versión que publica EWTN;
      aquí solo se ofrece la referencia y una síntesis propia,
      porque la traducción tiene derechos de autor (EUNSA).
+   · Consagración «Oh Señora mía»: versión de los Marianos de la
+     Inmaculada Concepción (amm.org). «Bendita sea tu pureza»: versión
+     de es.catholic.net. «Acordaos»: texto tradicional atribuido a san
+     Bernardo. De estas tres circulan variantes según el país.
    · Meditaciones y frutos: textos propios de esta app, de tradición
      piadosa; no son texto magisterial.
    ========================================================= */
@@ -58,8 +62,11 @@ const ORACIONES = {
       "Creo en el Espíritu Santo, la santa Iglesia católica, la comunión de los santos, " +
       "el perdón de los pecados, la resurrección de la carne y la vida eterna. Amén.",
   },
+  // `responde: true`: en el modo guía y respuesta, la primera parte (hasta el salto de línea)
+  // la dice quien guía y el resto lo responden todos.
   padrenuestro: {
     titulo: "Padre Nuestro",
+    responde: true,
     texto:
       "Padre nuestro que estás en el cielo, santificado sea tu Nombre; venga a nosotros tu Reino; " +
       "hágase tu voluntad en la tierra como en el cielo.\n" +
@@ -74,6 +81,7 @@ const ORACIONES = {
   },
   avemaria: {
     titulo: "Ave María",
+    responde: true,
     texto:
       "Dios te salve, María, llena eres de gracia; el Señor es contigo. " +
       "Bendita Tú eres entre todas las mujeres, y bendito es el fruto de tu vientre, Jesús.\n" +
@@ -81,6 +89,7 @@ const ORACIONES = {
   },
   gloria: {
     titulo: "Gloria",
+    responde: true,
     texto:
       "Gloria al Padre, y al Hijo, y al Espíritu Santo.\n" +
       "Como era en el principio, ahora y siempre, por los siglos de los siglos. Amén.",
@@ -121,6 +130,29 @@ const ORACIONES = {
       "Y tú, oh Príncipe de la Milicia Celestial, con el poder que Dios te ha conferido, arroja al " +
       "infierno a Satanás y a los demás espíritus malignos que vagan por el mundo para la perdición " +
       "de las almas. Amén.",
+  },
+  senoraMia: {
+    titulo: "Consagración a la Virgen",
+    texto:
+      "¡Oh Señora mía! ¡Oh Madre mía! Yo me ofrezco enteramente a ti y, en prueba de mi filial afecto, " +
+      "te consagro en este día mis ojos, mis oídos, mi lengua, mi corazón; en una palabra, todo mi ser. " +
+      "Ya que soy todo tuyo, oh Madre de bondad, guárdame y defiéndeme como pertenencia y posesión tuya. Amén.",
+  },
+  acordaos: {
+    titulo: "Acordaos",
+    texto:
+      "Acordaos, oh piadosísima Virgen María, que jamás se ha oído decir que ninguno de los que han acudido " +
+      "a vuestra protección, implorando vuestra asistencia y reclamando vuestro socorro, haya sido abandonado " +
+      "de vos. Animado con esta confianza, a vos también acudo, oh Madre, Virgen de las vírgenes, y aunque " +
+      "gimiendo bajo el peso de mis pecados, me atrevo a comparecer ante vuestra presencia soberana. " +
+      "No desechéis, oh Madre de Dios, mis humildes súplicas; antes bien, escuchadlas y acogedlas benignamente. Amén.",
+  },
+  benditaPureza: {
+    titulo: "Bendita sea tu pureza",
+    texto:
+      "Bendita sea tu pureza y eternamente lo sea, pues todo un Dios se recrea en tan graciosa belleza.\n" +
+      "A ti, celestial Princesa, amada Virgen María, te ofrezco en este día alma, vida y corazón.\n" +
+      "Mírame con compasión y no me dejes, Madre mía. Amén.",
   },
   oracionFinal: {
     titulo: "Oración final del Rosario",
@@ -448,8 +480,9 @@ const MISTERIOS = {
           "mujeres que lloran por Él. «No lloréis por mí; llorad más bien por vosotras y por vuestros hijos».",
         fruto: "La paciencia en las pruebas",
         meditacion:
-          "Paso a paso, Jesús avanza con la cruz por las calles de Jerusalén. Cae, se levanta y sigue. Su Madre le " +
-          "sale al encuentro y comparte en silencio su dolor. Simón de Cirene, primero obligado, termina ayudando " +
+          "Paso a paso, Jesús avanza con la cruz por las calles de Jerusalén. La tradición del Vía Crucis contempla " +
+          "cómo cae y se levanta, y cómo su Madre le sale al encuentro y comparte en silencio su dolor. " +
+          "Simón de Cirene, primero obligado, termina ayudando " +
           "por amor. Acepta tu cruz de cada día, sé cireneo para quien sufre a tu lado y camina junto a María detrás " +
           "de su Hijo.",
       },
@@ -501,10 +534,11 @@ const MISTERIOS = {
       },
       {
         titulo: "La Venida del Espíritu Santo sobre los Apóstoles",
-        cita: { ref: "Hch 2, 1-4", texto: "" },
+        cita: { ref: "Hch 1, 14; Hch 2, 1-4", texto: "" },
         sintesis:
-          "El día de Pentecostés, estando todos reunidos con María, viene del cielo un ruido como de viento " +
-          "impetuoso y aparecen lenguas como de fuego. Todos quedan llenos del Espíritu Santo.",
+          "Los apóstoles perseveraban unánimes en la oración con María, la Madre de Jesús. El día de Pentecostés, " +
+          "estando todos juntos en un mismo lugar, viene del cielo un ruido como de viento impetuoso y aparecen " +
+          "lenguas como de fuego. Todos quedan llenos del Espíritu Santo.",
         fruto: "La docilidad al Espíritu Santo",
         meditacion:
           "En el Cenáculo, la Iglesia naciente persevera en oración junto a María. El Espíritu Santo, Señor y dador " +

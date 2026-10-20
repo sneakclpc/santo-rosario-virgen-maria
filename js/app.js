@@ -23,16 +23,35 @@
       { id: "salve", label: "Salve", def: true },
       { id: "letanias", label: "Letanías Lauretanas", def: true },
       { id: "bajoTuAmparo", label: "Bajo tu amparo", def: false },
+      { id: "senoraMia", label: "Consagración «Oh Señora mía»", def: false },
+      { id: "acordaos", label: "Acordaos", def: false },
+      { id: "benditaPureza", label: "Bendita sea tu pureza", def: false },
       { id: "sanMiguel", label: "Oración a San Miguel", def: false },
       { id: "oracionFinal", label: "Oración final del Rosario", def: true },
+    ]},
+    { grupo: "Rezar con otros o en el carro", items: [
+      { id: "guia", label: "Modo guía y respuesta: una parte la dice quien guía y la otra la responden todos", def: false },
     ]},
     { grupo: "Escuchar en voz alta", id: "grupoVoz", items: [
       { id: "audio", label: "Leer las oraciones en voz alta", def: false },
       { id: "autoAvance", label: "Avanzar solo al terminar cada oración (manos libres)", def: true },
     ]},
+    { grupo: "Pantalla", id: "grupoPantalla", items: [
+      { id: "noche", label: "Modo noche (colores suaves y oscuros)", def: false },
+    ]},
     { grupo: "Texto del Padre Nuestro", items: [
       { id: "latam", label: "«No nos dejes caer en tentación» (uso de Latinoamérica). Apagado: «en la tentación», como el Compendio del Catecismo", def: false },
     ]},
+  ];
+
+  // Oraciones finales opcionales, en el orden en que se rezan
+  const FINALES = ["bajoTuAmparo", "senoraMia", "acordaos", "benditaPureza", "sanMiguel", "oracionFinal"];
+
+  const LETRAS = [
+    { valor: 1, nombre: "Normal" },
+    { valor: 1.15, nombre: "Grande" },
+    { valor: 1.3, nombre: "Muy grande" },
+    { valor: 1.5, nombre: "Enorme" },
   ];
 
   /* Libros bíblicos → página del texto de la Biblia de Navarra publicado por EWTN */
@@ -48,8 +67,8 @@
   function partesCita(ref) {
     return ref.split(";").map((r) => {
       const m = r.trim().match(/^(\S+)\s+(\d+),\s*([\d-]+)$/);
-      if (!m) return null;
-      return { libro: LIBROS[m[1]], abrev: m[1], cap: m[2], vers: m[3], texto: r.trim() };
+      if (!m || !LIBROS[m[1]]) return null;
+      return { libro: LIBROS[m[1]], cap: m[2], vers: m[3], texto: r.trim() };
     }).filter(Boolean);
   }
 
@@ -61,11 +80,13 @@
   }
 
   const ADJ = { gozosos: "Gozoso", luminosos: "Luminoso", dolorosos: "Doloroso", gloriosos: "Glorioso" };
+  const COMPLETO = ["gozosos", "luminosos", "dolorosos", "gloriosos"];
+  const CLAVES_MISTERIOS = Object.keys(MISTERIOS).concat("completo");
 
   /* ---------- almacenamiento seguro ---------- */
   const store = {
-    get(k, fallback) {
-      try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; }
+    get(k) {
+      try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; }
     },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* sin almacenamiento */ } },
     del(k) { try { localStorage.removeItem(k); } catch (e) { /* nada */ } },
@@ -74,12 +95,38 @@
   const hoy = new Date();
   const misterioDelDia = MISTERIOS_POR_DIA[hoy.getDay()];
 
-  const config = Object.assign(
-    { misterios: misterioDelDia, intencion: "", voz: "", velocidad: 0.95 },
-    Object.fromEntries(OPCIONES.flatMap((g) => g.items.map((o) => [o.id, o.def]))),
-    store.get("rosario.config", {})
+  const PREDETERMINADA = Object.assign(
+    { misterios: misterioDelDia, intencion: "", voz: "", velocidad: 0.95, letra: 1 },
+    Object.fromEntries(OPCIONES.flatMap((g) => g.items.map((o) => [o.id, o.def])))
   );
-  // Por defecto siempre se propone el misterio del día al abrir la app
+
+  // Solo acepta claves conocidas y del tipo esperado: unos datos guardados
+  // dañados o de otra versión nunca deben romper la app.
+  function sanear(guardado) {
+    const c = Object.assign({}, PREDETERMINADA);
+    if (!guardado || typeof guardado !== "object" || Array.isArray(guardado)) return c;
+    Object.keys(PREDETERMINADA).forEach((k) => {
+      if (Object.prototype.hasOwnProperty.call(guardado, k) && typeof guardado[k] === typeof PREDETERMINADA[k]) {
+        c[k] = guardado[k];
+      }
+    });
+    if (!CLAVES_MISTERIOS.includes(c.misterios)) c.misterios = misterioDelDia;
+    c.intencion = c.intencion.slice(0, 400);
+    c.voz = c.voz.slice(0, 200);
+    if (!(c.velocidad >= 0.5 && c.velocidad <= 1.5)) c.velocidad = PREDETERMINADA.velocidad;
+    if (!LETRAS.some((l) => l.valor === c.letra)) c.letra = 1;
+    return c;
+  }
+
+  function leerProgreso() {
+    const p = store.get("rosario.progreso");
+    if (!p || typeof p !== "object" || typeof p.actual !== "number" || typeof p.fecha !== "number") return null;
+    if (!(p.actual > 0) || Date.now() - p.fecha > 1000 * 60 * 60 * 12 || Date.now() < p.fecha) return null;
+    return { cfg: sanear(p.cfg), actual: Math.floor(p.actual), etiqueta: typeof p.etiqueta === "string" ? p.etiqueta.slice(0, 120) : "" };
+  }
+
+  const config = sanear(store.get("rosario.config"));
+  // Al abrir la app se proponen siempre los misterios del día
   config.misterios = misterioDelDia;
 
   let pasos = [];
@@ -88,9 +135,19 @@
   /* =========================================================
      Construcción de la secuencia de oraciones
      ========================================================= */
+  function gruposDe(cfg) {
+    return cfg.misterios === "completo" ? COMPLETO : [cfg.misterios];
+  }
+
+  function nombreRosario(clave) {
+    return clave === "completo" ? "Rosario completo" : MISTERIOS[clave].nombre;
+  }
+
   function construirPasos(cfg) {
     const s = [];
-    const add = (o) => s.push(o);
+    const grupos = gruposDe(cfg);
+    let vuelta = 0;
+    const add = (o) => s.push(Object.assign({ vuelta }, o));
 
     add({ cuenta: "cruz", tipo: "intro", fase: "Ofrecimiento" });
     add({ cuenta: "cruz", oracion: "senal", fase: "Inicio" });
@@ -106,18 +163,22 @@
     );
     add({ cuenta: "p2", oracion: "gloria", fase: "Inicio" });
 
-    for (let m = 0; m < 5; m++) {
-      const grande = m === 0 ? "p2" : "l" + m;
-      const despues = m < 4 ? "l" + (m + 1) : "medalla";
-      add({ cuenta: grande, tipo: "misterio", misterio: m });
-      add({ cuenta: grande, oracion: "padrenuestro", misterio: m });
-      for (let k = 0; k < 10; k++) {
-        add({ cuenta: `d${m}-${k}`, oracion: "avemaria", misterio: m, contador: [k + 1, 10] });
+    grupos.forEach((grupo, v) => {
+      vuelta = v;
+      for (let m = 0; m < 5; m++) {
+        // En el Rosario completo, cada nueva vuelta empieza en la medalla
+        const grande = m === 0 ? (v === 0 ? "p2" : "medalla") : "l" + m;
+        const despues = m < 4 ? "l" + (m + 1) : "medalla";
+        add({ cuenta: grande, tipo: "misterio", misterio: m, grupo });
+        add({ cuenta: grande, oracion: "padrenuestro", misterio: m, grupo });
+        for (let k = 0; k < 10; k++) {
+          add({ cuenta: `d${m}-${k}`, oracion: "avemaria", misterio: m, grupo, contador: [k + 1, 10] });
+        }
+        add({ cuenta: despues, oracion: "gloria", misterio: m, grupo, cierre: true });
+        if (cfg.fatima) add({ cuenta: despues, oracion: "fatima", misterio: m, grupo, cierre: true });
+        if (cfg.jaculatoria) add({ cuenta: despues, oracion: "jaculatoria", misterio: m, grupo, cierre: true });
       }
-      add({ cuenta: despues, oracion: "gloria", misterio: m });
-      if (cfg.fatima) add({ cuenta: despues, oracion: "fatima", misterio: m });
-      if (cfg.jaculatoria) add({ cuenta: despues, oracion: "jaculatoria", misterio: m });
-    }
+    });
 
     if (cfg.papa) {
       const nota = "Por las intenciones del Santo Padre";
@@ -130,9 +191,7 @@
       add({ cuenta: "medalla", tipo: "letanias", fase: "Conclusión" });
       add({ cuenta: "medalla", oracion: "oracionLetanias", fase: "Conclusión" });
     }
-    if (cfg.bajoTuAmparo) add({ cuenta: "medalla", oracion: "bajoTuAmparo", fase: "Conclusión" });
-    if (cfg.sanMiguel) add({ cuenta: "medalla", oracion: "sanMiguel", fase: "Conclusión" });
-    if (cfg.oracionFinal) add({ cuenta: "medalla", oracion: "oracionFinal", fase: "Conclusión" });
+    FINALES.forEach((id) => { if (cfg[id]) add({ cuenta: "medalla", oracion: id, fase: "Conclusión" }); });
     add({ cuenta: "cruz", oracion: "senalFinal", fase: "Conclusión" });
     add({ cuenta: "cruz", tipo: "fin", fase: "Amén" });
     return s;
@@ -151,7 +210,7 @@
   }
 
   function dibujarRosario(svg) {
-    svg.innerHTML = "";
+    svg.textContent = "";
     const W = 400, H = 700;
     svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
 
@@ -223,8 +282,9 @@
 
   function hacerBoton(g, id) {
     g.setAttribute("class", "cuenta");
-    g.setAttribute("tabindex", "0");
+    g.setAttribute("tabindex", "-1");
     g.setAttribute("role", "button");
+    g.setAttribute("aria-label", tituloCuenta(id));
     g.dataset.id = id;
     g.addEventListener("click", () => irACuenta(id));
     g.addEventListener("keydown", (e) => {
@@ -239,6 +299,7 @@
     g.classList.add(grande ? "grande" : "pequena");
     el("circle", { cx: x, cy: y, r: r + 12, class: "brillo" }, g);
     el("circle", { cx: x, cy: y, r, class: "perla", filter: "url(#sombra)" }, g);
+    el("circle", { cx: x, cy: y, r: r + 5, class: "anillo" }, g);
     el("ellipse", { cx: x - r * 0.32, cy: y - r * 0.38, rx: r * 0.32, ry: r * 0.2, class: "reflejo" }, g);
     el("title", {}, g).textContent = tituloCuenta(id);
   }
@@ -251,7 +312,7 @@
     const w = 42, h = 54.6;
     el("ellipse", { cx: x, cy: y, rx: w / 2 + 10, ry: h / 2 + 10, class: "brillo" }, g);
     el("image", { href: "img/medalla-milagrosa.svg", x: x - w / 2, y: y - h / 2, width: w, height: h, filter: "url(#sombra)" }, g);
-    el("ellipse", { cx: x, cy: y, rx: w / 2, ry: h / 2 - 0.5, class: "aro" }, g);
+    el("ellipse", { cx: x, cy: y, rx: w / 2 + 2, ry: h / 2 + 1.5, class: "aro" }, g);
     el("title", {}, g).textContent = tituloCuenta("medalla");
   }
 
@@ -284,34 +345,44 @@
   }
 
   function tituloCuenta(id) {
-    if (id === "cruz") return "Crucifijo — Señal de la Cruz y Credo";
-    if (id === "medalla") return "Medalla Milagrosa — Conclusión del Rosario";
+    if (id === "cruz") return "Crucifijo: Señal de la Cruz y Credo";
+    if (id === "medalla") return "Medalla Milagrosa: final del quinto misterio y conclusión del Rosario";
     if (id === "p1") return "Padre Nuestro";
-    if (/^s\d$/.test(id)) return `Ave María (${id[1]} de 3)`;
-    if (id === "p2") return "Gloria · Primer misterio · Padre Nuestro";
-    if (/^l\d$/.test(id)) return `Gloria · ${ORDINALES[+id[1]]} misterio · Padre Nuestro`;
+    if (/^s\d$/.test(id)) return `Ave María ${id[1]} de 3`;
+    if (id === "p2") return "Gloria y primer misterio";
+    if (/^l\d$/.test(id)) return `Final del ${ORDINALES[+id[1] - 1].toLowerCase()} misterio y ${ORDINALES[+id[1]].toLowerCase()} misterio`;
     const [m, k] = id.slice(1).split("-").map(Number);
-    return `${ORDINALES[m]} misterio — Ave María ${k + 1} de 10`;
+    return `${ORDINALES[m]} misterio, Ave María ${k + 1} de 10`;
   }
 
   function pintarEstado() {
-    const ultimoDe = {};
-    const primeroDe = {};
+    const vActual = pasos[actual].vuelta;
+    const idActual = pasos[actual].cuenta;
+    const hayAntes = new Set();
+    const proximaVuelta = {};
     pasos.forEach((p, i) => {
-      ultimoDe[p.cuenta] = i;
-      if (!(p.cuenta in primeroDe)) primeroDe[p.cuenta] = i;
+      if (i < actual) hayAntes.add(p.cuenta);
+      else if (i > actual && !(p.cuenta in proximaVuelta)) proximaVuelta[p.cuenta] = p.vuelta;
     });
-    const cuentaActual = pasos[actual].cuenta;
     for (const id in cuentasSVG) {
       const g = cuentasSVG[id];
-      g.classList.toggle("actual", id === cuentaActual);
-      g.classList.toggle("rezada", ultimoDe[id] < actual && id !== cuentaActual);
+      const esActual = id === idActual;
+      // Rezada: ya se pasó por ella y no vuelve a usarse en esta misma vuelta del Rosario
+      const rezada = !esActual && hayAntes.has(id) && proximaVuelta[id] !== vActual;
+      g.classList.toggle("actual", esActual);
+      g.classList.toggle("rezada", rezada);
+      g.setAttribute("tabindex", esActual ? "0" : "-1");
+      if (esActual) g.setAttribute("aria-current", "step"); else g.removeAttribute("aria-current");
     }
   }
 
   /* =========================================================
      Panel de oración
      ========================================================= */
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
   function parrafos(texto) {
     return texto
       .split("\n\n")
@@ -319,16 +390,47 @@
       .join("");
   }
 
-  function esc(s) {
-    return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  function nombreMisterio(m, grupo) {
+    return `${ORDINALES[m]} Misterio ${ADJ[grupo]}`;
   }
 
-  function nombreMisterio(m) {
-    return `${ORDINALES[m]} Misterio ${ADJ[config.misterios]}`;
+  function textoOracion(clave) {
+    const o = ORACIONES[clave];
+    return config.latam && o.textoLatam ? o.textoLatam : o.texto;
   }
 
-  function tarjetaMisterio(m, abierta, enAnuncio) {
-    const mis = MISTERIOS[config.misterios].lista[m];
+  // Texto que se reza en el paso: en las tres primeras Avemarías el saludo
+  // trinitario se integra en la oración («Dios te salve, María, Hija de Dios Padre, llena eres…»).
+  function textoPaso(p) {
+    const t = textoOracion(p.oracion);
+    if (p.saludo && t.startsWith("Dios te salve, María,")) return p.saludo + "," + t.slice("Dios te salve, María,".length);
+    return t;
+  }
+
+  function partesGuia(p) {
+    const t = textoPaso(p);
+    const i = t.indexOf("\n");
+    if (!config.guia || !ORACIONES[p.oracion].responde || i < 0) return null;
+    return { guia: t.slice(0, i), todos: t.slice(i + 1) };
+  }
+
+  function htmlOracion(p) {
+    const g = partesGuia(p);
+    if (g) {
+      return `<div class="oracion modo-guia">
+          <p><span class="quien">Guía</span>${esc(g.guia)}</p>
+          <p class="todos"><span class="quien">Todos</span>${esc(g.todos)}</p>
+        </div>`;
+    }
+    return `<div class="oracion">${parrafos(textoPaso(p))}</div>`;
+  }
+
+  function enlaceBiblia(c) {
+    return `<a href="https://www.ewtn.com/es/biblia/${c.libro.url}/${c.cap}" target="_blank" rel="noopener noreferrer">${esc(c.texto)}</a>`;
+  }
+
+  function tarjetaMisterio(m, grupo, enAnuncio) {
+    const mis = MISTERIOS[grupo].lista[m];
     const cita = mis.cita.texto
       ? `<blockquote class="cita-texto">${parrafos(mis.cita.texto)}</blockquote>`
       : `<p class="sintesis">${esc(mis.sintesis)}</p>`;
@@ -337,10 +439,7 @@
         <div class="bloque">
           <h4><span class="icono" aria-hidden="true">✦</span> Lectura bíblica · <span class="ref">${esc(mis.cita.ref)}</span></h4>
           ${cita}
-          <p class="fuente">Leer el pasaje completo en la Biblia de Navarra:
-            ${partesCita(mis.cita.ref).map((c) =>
-              `<a href="https://www.ewtn.com/es/biblia/${c.libro.url}/${c.cap}" target="_blank" rel="noopener">${esc(c.texto)}</a>`
-            ).join(" · ")}</p>
+          <p class="fuente">Leer el pasaje completo en la Biblia de Navarra: ${partesCita(mis.cita.ref).map(enlaceBiblia).join(" · ")}</p>
         </div>
         <div class="bloque">
           <h4><span class="icono" aria-hidden="true">✦</span> Meditación</h4>
@@ -355,9 +454,9 @@
       </div>`;
     }
     return `
-      <details class="misterio-card" ${abierta ? "open" : ""}>
+      <details class="misterio-card">
         <summary>
-          <span class="mc-num">${nombreMisterio(m)}</span>
+          <span class="mc-num">${nombreMisterio(m, grupo)}</span>
           <span class="mc-titulo">${esc(mis.titulo)}</span>
           <span class="mc-fruto">Fruto: ${esc(mis.fruto)}</span>
         </summary>
@@ -366,38 +465,47 @@
   }
 
   function puntosDecena(n, total) {
-    let h = `<div class="puntos" aria-label="${n} de ${total}">`;
+    let h = `<div class="puntos" role="img" aria-label="${n} de ${total}">`;
     for (let i = 1; i <= total; i++) h += `<span class="${i < n ? "hecho" : i === n ? "ahora" : ""}"></span>`;
     return h + "</div>";
+  }
+
+  function etiquetaPaso(p) {
+    if (p.tipo === "intro") return "Ofrecimiento";
+    if (p.tipo === "misterio") return "Anuncio del misterio";
+    if (p.tipo === "letanias") return "Letanías Lauretanas";
+    if (p.tipo === "fin") return "Amén";
+    const o = ORACIONES[p.oracion];
+    const partes = [];
+    if (p.cierre) partes.push(`Final del ${nombreMisterio(p.misterio, p.grupo)}`);
+    else if (p.misterio !== undefined) partes.push(nombreMisterio(p.misterio, p.grupo));
+    else if (p.fase) partes.push(p.fase);
+    if (p.contador) partes.push(`${o.titulo} ${p.contador[0]} de ${p.contador[1]}`);
+    return partes.join(" · ");
   }
 
   function renderPaso() {
     const p = pasos[actual];
     const panel = $("#contenido");
-    let etiqueta = "";
     let html = "";
 
     if (p.tipo === "intro") {
-      etiqueta = "Ofrecimiento";
       const intencion = config.intencion.trim();
       html = `
-        <h2>${esc(MISTERIOS[config.misterios].nombre)}</h2>
+        <h2>${esc(nombreRosario(config.misterios))}</h2>
         <p class="lead">Ponte en presencia de Dios, Padre, Hijo y Espíritu Santo, y de la mano de María,
         Madre de Dios y Madre nuestra, ofrece este Santo Rosario.</p>
         ${intencion ? `<div class="intencion"><span>Mi intención</span><p>${esc(intencion)}</p></div>` : ""}
         <p class="ayuda">Toca <strong>Siguiente</strong>, desliza o pulsa una cuenta del rosario para avanzar.</p>`;
     } else if (p.tipo === "misterio") {
-      etiqueta = "Anuncio del misterio";
-      const mis = MISTERIOS[config.misterios].lista[p.misterio];
+      const mis = MISTERIOS[p.grupo].lista[p.misterio];
       html = `
-        <p class="anuncio">${nombreMisterio(p.misterio)}</p>
+        <p class="anuncio">${nombreMisterio(p.misterio, p.grupo)}</p>
         <h2>${esc(mis.titulo)}</h2>
-        ${tarjetaMisterio(p.misterio, true, true)}`;
+        ${tarjetaMisterio(p.misterio, p.grupo, true)}`;
     } else if (p.tipo === "letanias") {
-      etiqueta = "Letanías Lauretanas";
       html = `<h2>Letanías de la Santísima Virgen</h2>` + renderLetanias();
     } else if (p.tipo === "fin") {
-      etiqueta = "Amén";
       html = `
         <img class="fin-virgen" src="img/virgen-fatima.svg" alt="Nuestra Señora de Fátima" width="120" height="180">
         <h2>Bendito sea Dios</h2>
@@ -405,24 +513,21 @@
         presente tus intenciones a su Hijo Jesucristo, y que la gracia de la Santísima Trinidad
         permanezca siempre contigo.</p>
         <p class="jaculatoria-fin">«Ad Iesum per Mariam» — A Jesús por María</p>
-        <button class="btn primario" id="btnOtraVez" type="button">Rezar de nuevo</button>`;
+        <div class="acciones-fin">
+          <button class="btn primario" id="btnOtraVez" type="button">Rezar de nuevo</button>
+          <button class="btn suave" id="btnCompartirFin" type="button">Compartir esta app</button>
+        </div>`;
     } else {
       const o = ORACIONES[p.oracion];
-      const partes = [];
-      if (p.misterio !== undefined) partes.push(nombreMisterio(p.misterio));
-      else if (p.fase) partes.push(p.fase);
-      if (p.contador) partes.push(`${o.titulo} ${p.contador[0]} de ${p.contador[1]}`);
-      etiqueta = partes.join(" · ");
       html = `
         <h2>${esc(o.titulo)}</h2>
         ${p.nota ? `<p class="nota">${esc(p.nota)}</p>` : ""}
         ${p.contador ? puntosDecena(p.contador[0], p.contador[1]) : ""}
-        ${p.saludo ? `<p class="saludo">${esc(p.saludo)}:</p>` : ""}
-        <div class="oracion">${parrafos(textoOracion(p.oracion))}</div>
-        ${p.misterio !== undefined ? tarjetaMisterio(p.misterio, false) : ""}`;
+        ${htmlOracion(p)}
+        ${p.misterio !== undefined ? tarjetaMisterio(p.misterio, p.grupo, false) : ""}`;
     }
 
-    if (p.cuenta === "medalla") {
+    if (p.cuenta === "medalla" && p.fase === "Conclusión") {
       html += `
         <figure class="medallas">
           <img src="img/medalla-milagrosa.svg" alt="Medalla Milagrosa, anverso" width="200" height="260">
@@ -431,6 +536,7 @@
         </figure>`;
     }
 
+    const etiqueta = etiquetaPaso(p);
     $("#etiqueta").textContent = etiqueta;
     panel.innerHTML = html;
     panel.classList.remove("entrar");
@@ -442,16 +548,21 @@
     if (window.matchMedia("(max-width: 860px)").matches && arriba < 0) window.scrollBy({ top: arriba - 8 });
 
     const otra = $("#btnOtraVez");
-    if (otra) otra.addEventListener("click", volverAInicio);
+    if (otra) otra.addEventListener("click", () => volverAInicio(true));
+    const comp = $("#btnCompartirFin");
+    if (comp) comp.addEventListener("click", compartir);
 
+    const ultimo = actual === pasos.length - 1;
     $("#btnAnterior").disabled = actual === 0;
-    $("#btnSiguiente").textContent = actual === pasos.length - 1 ? "Terminar" : "Siguiente";
-    $("#progreso").style.width = ((actual / (pasos.length - 1)) * 100).toFixed(1) + "%";
-    $("#progreso").parentElement.setAttribute("aria-valuenow", Math.round((actual / (pasos.length - 1)) * 100));
+    $("#btnSiguiente").textContent = ultimo ? "Terminar" : "Siguiente";
+    const pct = Math.round((actual / (pasos.length - 1)) * 100);
+    $("#progreso").style.width = pct + "%";
+    $("#progreso").parentElement.setAttribute("aria-valuenow", String(pct));
 
     pintarEstado();
     if (config.audio) leerPasoEnVoz();
-    store.set("rosario.progreso", { misterios: config.misterios, actual, total: pasos.length, fecha: Date.now() });
+    if (ultimo) store.del("rosario.progreso");
+    else store.set("rosario.progreso", { cfg: config, actual, fecha: Date.now(), etiqueta });
   }
 
   function renderLetanias() {
@@ -463,11 +574,6 @@
       return `<div class="grupo"><p class="respuesta">Respondemos: <em>${esc(grupo.respuesta)}</em>.</p>
         <ul class="invocaciones">${grupo.lineas.map((l) => `<li>${esc(l)}</li>`).join("")}</ul></div>`;
     }).join("") + `</div>`;
-  }
-
-  function textoOracion(clave) {
-    const o = ORACIONES[clave];
-    return config.latam && o.textoLatam ? o.textoLatam : o.texto;
   }
 
   /* =========================================================
@@ -492,29 +598,38 @@
       );
     },
 
-    // Divide en frases: algunos navegadores cortan los textos largos
+    // Divide en frases: algunos navegadores cortan los textos largos.
+    // (Sin «lookbehind» en la expresión: Safari anterior a 16.4 no lo entiende.)
     trozos(texto) {
       return texto
         .replace(/^[VR]\.\s*/gm, "")
         .replace(/[«»]/g, "")
-        .split(/(?<=[.;:!?])\s+|\n+/)
+        .replace(/([.;:!?])\s+/g, "$1\n")
+        .split(/\n+/)
         .map((t) => t.trim())
         .filter(Boolean);
     },
 
-    hablar(texto, alTerminar) {
+    // segmentos: textos que se leen y números que son pausas en milisegundos
+    hablar(segmentos, alTerminar) {
       if (!this.disponible) return;
       this.parar();
       const mio = ++this.turno;
-      const partes = this.trozos(texto);
-      const voz = this.elegida();
+      const cola = [];
+      [].concat(segmentos).forEach((s) => {
+        if (typeof s === "number") cola.push(s);
+        else this.trozos(s).forEach((t) => cola.push(t));
+      });
+      const vozElegida = this.elegida();
       let i = 0;
       const siguienteTrozo = () => {
         if (mio !== this.turno) return;
-        if (i >= partes.length) { if (alTerminar) alTerminar(); return; }
-        const u = new SpeechSynthesisUtterance(partes[i++]);
-        if (voz) u.voice = voz;
-        u.lang = voz ? voz.lang : config.latam ? "es-MX" : "es-ES";
+        if (i >= cola.length) { if (alTerminar) alTerminar(); return; }
+        const item = cola[i++];
+        if (typeof item === "number") { setTimeout(siguienteTrozo, item); return; }
+        const u = new SpeechSynthesisUtterance(item);
+        if (vozElegida) u.voice = vozElegida;
+        u.lang = vozElegida ? vozElegida.lang : config.latam ? "es-MX" : "es-ES";
         u.rate = Number(config.velocidad) || 1;
         u.onend = () => setTimeout(siguienteTrozo, 180);
         u.onerror = () => { if (mio === this.turno) setTimeout(siguienteTrozo, 180); };
@@ -541,31 +656,44 @@
     },
   };
 
+  // Tiempo para que la persona responda en voz alta en el modo guía
+  function pausaPara(texto) {
+    const palabras = texto.split(/\s+/).filter(Boolean).length;
+    return Math.round((palabras * 430) / (Number(config.velocidad) || 1) + 700);
+  }
+
   function textoHablado(p) {
     if (p.tipo === "intro") {
       const intencion = config.intencion.trim();
-      return `${MISTERIOS[config.misterios].nombre}. Ponte en presencia de Dios, Padre, Hijo y Espíritu Santo, ` +
+      return [`${nombreRosario(config.misterios)}. Ponte en presencia de Dios, Padre, Hijo y Espíritu Santo, ` +
         `y de la mano de María, Madre de Dios y Madre nuestra, ofrece este Santo Rosario.` +
-        (intencion ? ` Mi intención: ${intencion}.` : "");
+        (intencion ? ` Mi intención: ${intencion}.` : "")];
     }
     if (p.tipo === "misterio") {
-      const mis = MISTERIOS[config.misterios].lista[p.misterio];
-      let t = `${nombreMisterio(p.misterio)}: ${mis.titulo}. Fruto del misterio: ${mis.fruto}.`;
+      const mis = MISTERIOS[p.grupo].lista[p.misterio];
+      let t = `${nombreMisterio(p.misterio, p.grupo)}: ${mis.titulo}. Fruto del misterio: ${mis.fruto}.`;
       if (config.meditaciones) {
         t += ` Lectura bíblica: ${citaHablada(mis.cita.ref)}. ${mis.cita.texto || mis.sintesis} Meditación. ${mis.meditacion}`;
       }
-      return t;
+      return [t];
     }
     if (p.tipo === "letanias") {
-      return LETANIAS.map((g) => g.respuesta
-        ? g.lineas.map((l) => `${l}, ${g.respuesta}.`).join("\n")
-        : g.lineas.map(([v, r]) => `${v}. ${r}.`).join("\n")
-      ).join("\n");
+      const seg = [];
+      LETANIAS.forEach((g) => {
+        const lineas = g.respuesta ? g.lineas.map((l) => [l, g.respuesta]) : g.lineas;
+        lineas.forEach(([v, r]) => {
+          if (config.guia) seg.push(v + ".", pausaPara(r));
+          else seg.push(`${v}, ${r}.`);
+        });
+      });
+      return seg;
     }
-    if (p.tipo === "fin") {
-      return "Bendito sea Dios. Has terminado el Santo Rosario. A Jesús por María.";
-    }
-    return (p.nota ? p.nota + ". " : "") + textoOracion(p.oracion);
+    if (p.tipo === "fin") return ["Bendito sea Dios. Has terminado el Santo Rosario. A Jesús por María."];
+    const seg = p.nota ? [p.nota + "."] : [];
+    const g = partesGuia(p);
+    if (g) seg.push(g.guia, pausaPara(g.todos));
+    else seg.push(textoPaso(p));
+    return seg;
   }
 
   function leerPasoEnVoz() {
@@ -588,10 +716,89 @@
 
   function alternarVoz() {
     config.audio = !config.audio;
-    store.set("rosario.config", config);
+    guardarConfig();
     pintarBotonVoz();
     voz.mantenerPantalla(config.audio);
     if (config.audio) leerPasoEnVoz(); else voz.parar();
+  }
+
+  /* =========================================================
+     Pantalla: tamaño de letra y modo noche
+     ========================================================= */
+  function aplicarPantalla() {
+    const raiz = document.documentElement;
+    raiz.style.setProperty("--letra", String(config.letra));
+    raiz.dataset.tema = config.noche ? "noche" : "claro";
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", config.noche ? "#1d2233" : "#fbf8f1");
+    const nombre = (LETRAS.find((l) => l.valor === config.letra) || LETRAS[0]).nombre;
+    const bl = $("#btnLetra");
+    bl.setAttribute("aria-label", `Tamaño de letra: ${nombre}. Cambiar`);
+    bl.title = `Letra: ${nombre}`;
+    const bt = $("#btnTema");
+    bt.setAttribute("aria-pressed", config.noche ? "true" : "false");
+    bt.setAttribute("aria-label", config.noche ? "Volver al modo claro" : "Activar el modo noche");
+    bt.title = config.noche ? "Modo claro" : "Modo noche";
+  }
+
+  function cambiarLetra() {
+    const i = LETRAS.findIndex((l) => l.valor === config.letra);
+    config.letra = LETRAS[(i + 1) % LETRAS.length].valor;
+    guardarConfig();
+    aplicarPantalla();
+    const sel = $("#letraSel");
+    if (sel) sel.value = String(config.letra);
+    avisar(`Letra: ${LETRAS.find((l) => l.valor === config.letra).nombre}`);
+  }
+
+  function alternarTema() {
+    config.noche = !config.noche;
+    guardarConfig();
+    aplicarPantalla();
+    const c = document.querySelector("input[name=noche]");
+    if (c) c.checked = config.noche;
+  }
+
+  function guardarConfig() {
+    store.set("rosario.config", config);
+  }
+
+  /* =========================================================
+     Compartir y avisos
+     ========================================================= */
+  let temporizadorAviso = null;
+  function avisar(texto, accion) {
+    const a = $("#aviso");
+    a.textContent = "";
+    a.appendChild(document.createTextNode(texto));
+    if (accion) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "aviso-accion";
+      b.textContent = accion.texto;
+      b.addEventListener("click", accion.alPulsar);
+      a.appendChild(b);
+    }
+    a.hidden = false;
+    clearTimeout(temporizadorAviso);
+    if (!accion) temporizadorAviso = setTimeout(() => (a.hidden = true), 2600);
+  }
+
+  async function compartir() {
+    const url = location.origin + location.pathname;
+    const datos = {
+      title: "Santo Rosario · Jesús por María",
+      text: "Reza el Santo Rosario con meditaciones y citas bíblicas. Gratis para todos.",
+      url,
+    };
+    try {
+      if (navigator.share) { await navigator.share(datos); return; }
+      await navigator.clipboard.writeText(url);
+      avisar("Enlace copiado. Ya puedes pegarlo en WhatsApp o donde quieras.");
+    } catch (e) {
+      if (e && e.name === "AbortError") return;
+      avisar(`Copia este enlace: ${url}`);
+    }
   }
 
   /* =========================================================
@@ -602,27 +809,40 @@
     renderPaso();
   }
   const siguiente = () => {
-    if (actual === pasos.length - 1) { volverAInicio(); return; }
+    if (actual === pasos.length - 1) { volverAInicio(true); return; }
     ir(actual + 1);
   };
   const anterior = () => ir(actual - 1);
 
   function irACuenta(id) {
-    const i = pasos.findIndex((p) => p.cuenta === id);
-    if (i >= 0) ir(i);
+    const indices = [];
+    pasos.forEach((p, i) => { if (p.cuenta === id) indices.push(i); });
+    if (!indices.length) return;
+    let destino = indices[0];
+    if (id === "medalla") {
+      // La medalla lleva a la conclusión del Rosario (Salve, Letanías…)
+      const conclusion = indices.find((i) => pasos[i].fase === "Conclusión");
+      if (conclusion !== undefined) destino = conclusion;
+    } else {
+      // En el Rosario completo, ir a la cuenta dentro de la vuelta que se está rezando
+      const mismaVuelta = indices.find((i) => pasos[i].vuelta === pasos[actual].vuelta);
+      if (mismaVuelta !== undefined) destino = mismaVuelta;
+    }
+    ir(destino);
   }
 
-  function comenzar(continuar) {
-    leerFormulario();
-    store.set("rosario.config", config);
-    pasos = construirPasos(config);
-    actual = 0;
-    if (continuar) {
-      const prog = store.get("rosario.progreso", null);
-      if (prog && prog.total === pasos.length) actual = Math.min(prog.actual, pasos.length - 1);
+  function comenzar(progreso) {
+    if (progreso) {
+      // Se reconstruye con las mismas opciones con que se empezó
+      Object.assign(config, progreso.cfg, { letra: config.letra, noche: config.noche, audio: config.audio });
+    } else {
+      leerFormulario();
     }
-    $("#tituloRezo").textContent = MISTERIOS[config.misterios].nombre;
-    document.body.dataset.misterio = config.misterios;
+    guardarConfig();
+    pasos = construirPasos(config);
+    actual = progreso ? Math.min(progreso.actual, pasos.length - 1) : 0;
+    $("#tituloRezo").textContent = nombreRosario(config.misterios);
+    document.body.dataset.misterio = config.misterios === "completo" ? "gozosos" : config.misterios;
     mostrar("rezo");
     pintarBotonVoz();
     voz.mantenerPantalla(config.audio);
@@ -630,10 +850,11 @@
     $("#btnSiguiente").focus({ preventScroll: true });
   }
 
-  function volverAInicio() {
+  // terminado: el Rosario se acabó y ya no hay nada que continuar
+  function volverAInicio(terminado) {
     voz.parar();
     voz.mantenerPantalla(false);
-    store.del("rosario.progreso");
+    if (terminado) store.del("rosario.progreso");
     mostrar("inicio");
     renderInicio();
   }
@@ -646,21 +867,29 @@
   /* =========================================================
      Pantalla de inicio (opciones)
      ========================================================= */
-  function renderInicio() {
-    $("#hoyTexto").innerHTML =
-      `Hoy es <strong>${DIAS[hoy.getDay()]}</strong>: la Iglesia propone los ` +
-      `<strong>${MISTERIOS[misterioDelDia].nombre}</strong>. Puedes elegir otros si lo deseas.`;
-
-    const cont = $("#selectorMisterios");
-    cont.innerHTML = Object.entries(MISTERIOS).map(([clave, m]) => `
+  function tarjetaGrupo(clave, nombre, dias, lista) {
+    return `
       <label class="mist-opcion" data-misterio="${clave}">
         <input type="radio" name="misterios" value="${clave}" ${config.misterios === clave ? "checked" : ""}>
         <span class="mist-cara">
-          <span class="mist-nombre">${m.nombre}</span>
-          <span class="mist-dias">${m.dias}${clave === misterioDelDia ? ' · <em>hoy</em>' : ""}</span>
-          <ol>${m.lista.map((x) => `<li>${esc(x.titulo)}</li>`).join("")}</ol>
+          <span class="mist-nombre">${esc(nombre)}</span>
+          <span class="mist-dias">${dias}</span>
+          ${lista ? `<ol>${lista.map((x) => `<li>${esc(x.titulo)}</li>`).join("")}</ol>` : ""}
         </span>
-      </label>`).join("");
+      </label>`;
+  }
+
+  function renderInicio() {
+    const delDia = MISTERIOS[misterioDelDia].nombre;
+    $("#hoyTexto").innerHTML =
+      `Hoy es <strong>${DIAS[hoy.getDay()]}</strong>: la Iglesia propone los <strong>${delDia}</strong>.`;
+    $("#btnRapido").textContent = `Rezar ahora los ${delDia}`;
+
+    $("#selectorMisterios").innerHTML =
+      Object.entries(MISTERIOS).map(([clave, m]) =>
+        tarjetaGrupo(clave, m.nombre, esc(m.dias) + (clave === misterioDelDia ? " · <em>hoy</em>" : ""), m.lista)
+      ).join("") +
+      tarjetaGrupo("completo", "Rosario completo", "Los 20 misterios, en cuatro vueltas", null);
 
     $("#opciones").innerHTML = OPCIONES.map((g) => `
       <fieldset class="grupo-op" ${g.id ? `id="${g.id}"` : ""} ${g.id === "grupoVoz" && !voz.disponible ? "hidden" : ""}>
@@ -672,6 +901,22 @@
             <span>${o.label}</span>
           </label>`).join("")}
       </fieldset>`).join("");
+
+    $("#grupoPantalla").insertAdjacentHTML("beforeend", `
+      <label class="campo">Tamaño de letra
+        <select id="letraSel">${LETRAS.map((l) => `<option value="${l.valor}">${l.nombre}</option>`).join("")}</select>
+      </label>`);
+    $("#letraSel").value = String(config.letra);
+    $("#letraSel").addEventListener("change", (e) => {
+      config.letra = Number(e.target.value);
+      guardarConfig();
+      aplicarPantalla();
+    });
+    document.querySelector("input[name=noche]").addEventListener("change", (e) => {
+      config.noche = e.target.checked;
+      guardarConfig();
+      aplicarPantalla();
+    });
 
     if (voz.disponible) {
       $("#grupoVoz").insertAdjacentHTML("beforeend", `
@@ -695,7 +940,7 @@
           : `<option value="">Voz del dispositivo</option>`;
       };
       llenarVoces();
-      speechSynthesis.onvoiceschanged = llenarVoces;
+      speechSynthesis.onvoiceschanged = () => { if ($("#vozSel")) llenarVoces(); };
       $("#btnProbarVoz").addEventListener("click", () => {
         leerFormulario();
         voz.hablar("Dios te salve, María, llena eres de gracia; el Señor es contigo.");
@@ -704,46 +949,73 @@
 
     $("#intencion").value = config.intencion || "";
 
-    const prog = store.get("rosario.progreso", null);
-    const cont2 = $("#btnContinuar");
-    if (prog && prog.actual > 0 && Date.now() - prog.fecha < 1000 * 60 * 60 * 12) {
-      cont2.hidden = false;
-      cont2.textContent = `Continuar el rosario en curso (${MISTERIOS[prog.misterios].nombre})`;
-      cont2.onclick = () => {
-        config.misterios = prog.misterios;
-        const radio = document.querySelector(`input[name=misterios][value=${prog.misterios}]`);
-        if (radio) radio.checked = true;
-        comenzar(true);
-      };
+    const prog = leerProgreso();
+    const cont = $("#btnContinuar");
+    if (prog) {
+      cont.hidden = false;
+      cont.textContent = `Continuar donde ibas: ${nombreRosario(prog.cfg.misterios)}` + (prog.etiqueta ? ` · ${prog.etiqueta}` : "");
+      cont.onclick = () => comenzar(prog);
     } else {
-      cont2.hidden = true;
+      cont.hidden = true;
     }
   }
 
   function leerFormulario() {
     const sel = document.querySelector("input[name=misterios]:checked");
-    if (sel) config.misterios = sel.value;
+    if (sel && CLAVES_MISTERIOS.includes(sel.value)) config.misterios = sel.value;
     OPCIONES.forEach((g) => g.items.forEach((o) => {
-      const c = document.querySelector(`input[name=${o.id}]`);
+      const c = document.querySelector(`input[name="${o.id}"]`);
       if (c) config[o.id] = c.checked;
     }));
-    config.intencion = $("#intencion").value || "";
+    config.intencion = ($("#intencion").value || "").slice(0, 400);
     if ($("#vozSel")) config.voz = $("#vozSel").value;
-    if ($("#velSel")) config.velocidad = Number($("#velSel").value);
+    if ($("#velSel")) config.velocidad = Number($("#velSel").value) || PREDETERMINADA.velocidad;
+  }
+
+  /* =========================================================
+     Actualizaciones (service worker)
+     ========================================================= */
+  function registrarServiceWorker() {
+    if (!("serviceWorker" in navigator) || !(location.protocol === "https:" || location.hostname === "localhost")) return;
+    navigator.serviceWorker.register("sw.js").then((reg) => {
+      reg.addEventListener("updatefound", () => {
+        const nuevo = reg.installing;
+        if (!nuevo) return;
+        nuevo.addEventListener("statechange", () => {
+          if (nuevo.state === "installed" && navigator.serviceWorker.controller) {
+            avisar("Hay una versión nueva de la app.", { texto: "Actualizar", alPulsar: () => nuevo.postMessage("activar") });
+          }
+        });
+      });
+    }).catch(() => {});
+    // Recarga solo al cambiar de versión, no la primera vez que se instala
+    const habiaVersion = !!navigator.serviceWorker.controller;
+    let recargando = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (!habiaVersion || recargando) return;
+      recargando = true;
+      location.reload();
+    });
   }
 
   /* =========================================================
      Arranque
      ========================================================= */
   function iniciar() {
-    dibujarRosario($("#rosario"));
-    renderInicio();
-
-    $("#formInicio").addEventListener("submit", (e) => { e.preventDefault(); comenzar(false); });
+    // Primero los eventos: si algo falla después, los botones siguen funcionando
+    $("#formInicio").addEventListener("submit", (e) => { e.preventDefault(); comenzar(null); });
+    $("#btnRapido").addEventListener("click", () => {
+      const radio = document.querySelector(`input[name=misterios][value="${misterioDelDia}"]`);
+      if (radio) radio.checked = true;
+      comenzar(null);
+    });
     $("#btnSiguiente").addEventListener("click", siguiente);
     $("#btnAnterior").addEventListener("click", anterior);
-    $("#btnSalir").addEventListener("click", volverAInicio);
+    $("#btnSalir").addEventListener("click", () => volverAInicio(false));
     $("#btnVoz").addEventListener("click", alternarVoz);
+    $("#btnLetra").addEventListener("click", cambiarLetra);
+    $("#btnTema").addEventListener("click", alternarTema);
+    $("#btnCompartir").addEventListener("click", compartir);
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible" && config.audio && !$("#rezo").hidden) voz.mantenerPantalla(true);
     });
@@ -751,9 +1023,9 @@
     document.addEventListener("keydown", (e) => {
       if ($("#rezo").hidden) return;
       const tag = (e.target.tagName || "").toLowerCase();
-      if (tag === "input" || tag === "textarea" || tag === "summary" || tag === "button") return;
-      if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") { e.preventDefault(); siguiente(); }
-      if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); anterior(); }
+      if (["input", "textarea", "select", "summary", "button", "a"].includes(tag)) return;
+      if (e.key === "ArrowRight" || e.key === "ArrowDown" || e.key === " " || e.key === "PageDown") { e.preventDefault(); siguiente(); }
+      if (e.key === "ArrowLeft" || e.key === "ArrowUp" || e.key === "PageUp") { e.preventDefault(); anterior(); }
     });
 
     // Deslizar en móviles
@@ -767,9 +1039,18 @@
       x0 = null;
     });
 
-    if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
-      navigator.serviceWorker.register("sw.js").catch(() => {});
+    aplicarPantalla();
+    dibujarRosario($("#rosario"));
+    try {
+      renderInicio();
+    } catch (e) {
+      // Datos guardados irrecuperables: se empieza de cero
+      store.del("rosario.config");
+      store.del("rosario.progreso");
+      Object.assign(config, PREDETERMINADA);
+      renderInicio();
     }
+    registrarServiceWorker();
   }
 
   document.addEventListener("DOMContentLoaded", iniciar);

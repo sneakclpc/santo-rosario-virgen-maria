@@ -1,19 +1,42 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" data-tema="claro">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; media-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
   <title>Santo Rosario · Jesús por María</title>
-  <meta name="description" content="Santo Rosario interactivo y gratuito: misterios gozosos, luminosos, dolorosos y gloriosos, con citas bíblicas, meditaciones y letanías.">
+  <meta name="description" content="Santo Rosario interactivo y gratuito: misterios gozosos, luminosos, dolorosos y gloriosos, con citas bíblicas, meditaciones, letanías y lectura en voz alta.">
   <meta name="theme-color" content="#fbf8f1">
+
+  <!-- Vista previa al compartir (WhatsApp, Facebook, Telegram…) -->
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="es_LA">
+  <meta property="og:site_name" content="Santo Rosario · Jesús por María">
+  <meta property="og:title" content="Santo Rosario · Jesús por María">
+  <meta property="og:description" content="Reza el Santo Rosario con meditaciones, citas bíblicas y letanías. Gratis para todos.">
+  <meta property="og:url" content="https://sneakclpc.github.io/santo-rosario-virgen-maria/">
+  <meta property="og:image" content="https://sneakclpc.github.io/santo-rosario-virgen-maria/img/compartir.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Nuestra Señora de Fátima y el título Santo Rosario">
+  <meta name="twitter:card" content="summary_large_image">
+
   <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="icon" href="img/icono-192.png" type="image/png" sizes="192x192">
+  <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+  <link rel="preload" href="fonts/lora.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/cormorant-garamond.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="css/styles.css">
+  <script src="js/tema.js"></script>
 </head>
 <body>
+  <div id="aviso" class="aviso" role="status" aria-live="polite" hidden></div>
+
+  <noscript>
+    <p class="sin-js">Para rezar con esta app necesitas activar JavaScript en tu navegador.</p>
+  </noscript>
 
   <!-- ============ Pantalla de inicio ============ -->
   <main id="inicio" class="pantalla">
@@ -22,39 +45,49 @@
       <p class="hero-pre">Nuestra Señora del Rosario de Fátima · Ad Iesum per Mariam</p>
       <h1>Santo Rosario</h1>
       <p class="hero-sub">En el nombre del Padre, y del Hijo, y del Espíritu Santo.</p>
+      <p id="hoyTexto" class="hoy"></p>
+      <div class="acciones-hero">
+        <button class="btn primario grande" id="btnRapido" type="button">Rezar ahora</button>
+        <button class="btn suave" id="btnContinuar" type="button" hidden></button>
+      </div>
     </header>
 
     <form id="formInicio" class="tarjeta">
-      <p id="hoyTexto" class="hoy"></p>
-
-      <h3 class="seccion">¿Qué misterios vas a rezar?</h3>
+      <h2 class="seccion">¿Prefieres otros misterios?</h2>
       <div id="selectorMisterios" class="selector-misterios"></div>
 
-      <h3 class="seccion">Oraciones que deseas incluir</h3>
-      <div id="opciones" class="opciones"></div>
+      <details class="mas-opciones">
+        <summary>Oraciones, voz, letra y otras opciones</summary>
+        <div id="opciones" class="opciones"></div>
+      </details>
 
-      <h3 class="seccion"><label for="intencion">Tu intención (opcional)</label></h3>
+      <h2 class="seccion"><label for="intencion">Tu intención (opcional)</label></h2>
       <textarea id="intencion" rows="2" maxlength="400" placeholder="Por mi familia, por un enfermo, por la paz…"></textarea>
 
       <div class="acciones-inicio">
         <button class="btn primario grande" type="submit">Comenzar el Santo Rosario</button>
-        <button class="btn suave" id="btnContinuar" type="button" hidden></button>
       </div>
     </form>
 
     <footer class="pie">
       <p>Hecho con amor para la mayor gloria de Dios. Libre y gratuito para todos.</p>
+      <button class="btn suave mini" id="btnCompartir" type="button">Compartir esta app</button>
       <details class="fuentes">
         <summary>Fuentes</summary>
         <ul>
           <li>Oraciones (Señal de la Cruz, Padre Nuestro, Ave María, Gloria, Credo, Salve, Bajo tu amparo) y nombres de los misterios:
-            <a href="https://www.vatican.va/archive/compendium_ccc/documents/archive_2005_compendium-ccc_sp.html" target="_blank" rel="noopener">Compendio del Catecismo de la Iglesia Católica</a>, Apéndice.</li>
+            <a href="https://www.vatican.va/archive/compendium_ccc/documents/archive_2005_compendium-ccc_sp.html" target="_blank" rel="noopener noreferrer">Compendio del Catecismo de la Iglesia Católica</a>, Apéndice.</li>
           <li>Letanías Lauretanas y modo de rezar el Rosario:
-            <a href="https://www.vatican.va/special/rosary/index_rosary_sp.htm" target="_blank" rel="noopener">El Santo Rosario (vatican.va)</a>.</li>
+            <a href="https://www.vatican.va/special/rosary/index_rosary_sp.htm" target="_blank" rel="noopener noreferrer">El Santo Rosario (vatican.va)</a>.</li>
           <li>Misterios Luminosos y días de la semana:
-            <a href="https://www.vatican.va/content/john-paul-ii/es/apost_letters/2002/documents/hf_jp-ii_apl_20021016_rosarium-virginis-mariae.html" target="_blank" rel="noopener">Rosarium Virginis Mariae</a>, san Juan Pablo II.</li>
+            <a href="https://www.vatican.va/content/john-paul-ii/es/apost_letters/2002/documents/hf_jp-ii_apl_20021016_rosarium-virginis-mariae.html" target="_blank" rel="noopener noreferrer">Rosarium Virginis Mariae</a>, san Juan Pablo II.</li>
           <li>Citas bíblicas: Sagrada Biblia de la Universidad de Navarra, en la
-            <a href="https://www.ewtn.com/es/biblia" target="_blank" rel="noopener">edición en línea de EWTN</a>.</li>
+            <a href="https://www.ewtn.com/es/biblia" target="_blank" rel="noopener noreferrer">edición en línea de EWTN</a>.</li>
+          <li>Consagración «Oh Señora mía»: versión de los
+            <a href="https://amm.org/pray-with-us/special-prayers/ofrecimiento-a-la-santisima-virgen" target="_blank" rel="noopener noreferrer">Marianos de la Inmaculada Concepción</a>.
+            «Bendita sea tu pureza»: versión de
+            <a href="https://es.catholic.net/op/articulos/15563/bendita-sea-tu-pureza.html" target="_blank" rel="noopener noreferrer">Catholic.net</a>.
+            «Acordaos»: texto tradicional atribuido a san Bernardo. De estas oraciones circulan variantes según el país.</li>
           <li>Catecismo de la Iglesia Católica sobre el Rosario: n. 971, 2678 y 2708.</li>
           <li>Las síntesis de los pasajes, las meditaciones y los frutos de cada misterio son textos propios de esta app, de tradición piadosa.</li>
         </ul>
@@ -65,19 +98,27 @@
   <!-- ============ Pantalla de rezo ============ -->
   <main id="rezo" class="pantalla" hidden>
     <header class="barra">
-      <button class="btn icono" id="btnSalir" type="button" aria-label="Volver al inicio">‹ Inicio</button>
+      <button class="btn icono" id="btnSalir" type="button" aria-label="Volver al inicio (se guarda por dónde vas)">‹ Inicio</button>
       <h1 id="tituloRezo" class="barra-titulo"></h1>
-      <button class="btn icono voz" id="btnVoz" type="button" aria-pressed="false" aria-label="Escuchar en voz alta">
-        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path class="ondas" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-        <span>Escuchar</span>
-      </button>
+      <div class="barra-botones">
+        <button class="btn icono redondo" id="btnLetra" type="button" aria-label="Cambiar tamaño de letra">
+          <span aria-hidden="true" class="aa">A<small>A</small></span>
+        </button>
+        <button class="btn icono redondo" id="btnTema" type="button" aria-pressed="false" aria-label="Activar el modo noche">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="currentColor"/></svg>
+        </button>
+        <button class="btn icono voz" id="btnVoz" type="button" aria-pressed="false" aria-label="Escuchar en voz alta">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path class="ondas" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <span>Escuchar</span>
+        </button>
+      </div>
     </header>
     <div class="progreso" role="progressbar" aria-label="Avance del rosario" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
       <div id="progreso"></div>
     </div>
 
     <div class="rezo-grid">
-      <section class="lienzo" aria-label="Rosario: toca una cuenta para ir a esa oración">
+      <section class="lienzo" aria-label="Rosario: la cuenta rosa marca dónde vas; toca una cuenta para ir a esa oración">
         <svg id="rosario" role="group" aria-label="Rosario interactivo"></svg>
       </section>
 
@@ -86,7 +127,7 @@
           <p id="etiqueta" class="etiqueta"></p>
           <div id="contenido" class="contenido"></div>
         </div>
-        <nav class="controles">
+        <nav class="controles" aria-label="Avanzar en el rosario">
           <button class="btn suave" id="btnAnterior" type="button">Anterior</button>
           <button class="btn primario" id="btnSiguiente" type="button">Siguiente</button>
         </nav>
