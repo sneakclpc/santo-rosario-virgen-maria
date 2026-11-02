@@ -440,3 +440,5 @@ body[data-misterio="dolorosos"] .misterio-card { background: linear-gradient(180
   .mist-nombre { font-size: 1.2rem; }
   .tarjeta { padding: 16px; }
 }
+
+.estado-prueba { font-size: 0.82rem; color: var(--tinta-suave); margin: 6px 0 0; }

@@ -1,12 +1,13 @@
 /* Permite rezar sin conexión. Sube la versión al cambiar archivos.
    Estrategia: responde al instante con lo guardado y actualiza en segundo plano;
    así la app abre rápido aunque haya poca señal (en el carro, por ejemplo). */
-const CACHE = "rosario-v3";
+const CACHE = "rosario-v4";
 const ARCHIVOS = [
   "./", "index.html", "css/styles.css", "js/tema.js", "js/data.js", "js/app.js",
   "icon.svg", "manifest.webmanifest",
   "img/virgen-fatima.svg", "img/medalla-milagrosa.svg", "img/medalla-reverso.svg",
   "img/icono-192.png", "img/icono-512.png", "img/apple-touch-icon.png",
+  "audio/silencio.wav", "audio/campana.wav",
   "fonts/lora.woff2", "fonts/lora-italic.woff2",
   "fonts/cormorant-garamond.woff2", "fonts/cormorant-garamond-italic.woff2",
 ];

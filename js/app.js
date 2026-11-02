@@ -615,10 +615,17 @@
       if (!this.disponible) return;
       this.parar();
       const mio = ++this.turno;
+      // Se juntan frases hasta ~180 letras: menos cortes entre frases, que algunos equipos
+      // Bluetooth aprovechan para «dormirse» y comerse el inicio de la siguiente.
       const cola = [];
       [].concat(segmentos).forEach((s) => {
-        if (typeof s === "number") cola.push(s);
-        else this.trozos(s).forEach((t) => cola.push(t));
+        if (typeof s === "number") { cola.push(s); return; }
+        let bloque = "";
+        this.trozos(s).forEach((t) => {
+          if (bloque && bloque.length + t.length > 180) { cola.push(bloque); bloque = ""; }
+          bloque = bloque ? bloque + " " + t : t;
+        });
+        if (bloque) cola.push(bloque);
       });
       const vozElegida = this.elegida();
       let i = 0;
@@ -696,9 +703,74 @@
     return seg;
   }
 
+  /* Sesión multimedia: mientras la voz está activa se reproduce un audio en silencio.
+     Así el teléfono trata la app como una app de audio (igual que la música):
+     mantiene abierto el canal Bluetooth del carro, muestra la oración en la pantalla
+     del carro y en la pantalla bloqueada, y los botones «siguiente / anterior» del
+     volante avanzan o retroceden en el rosario. */
+  const multimedia = {
+    audio: null,
+    controles: false,
+
+    activar() {
+      if (!this.audio) {
+        this.audio = new Audio("audio/silencio.wav");
+        this.audio.loop = true;
+        this.audio.preload = "auto";
+        this.audio.setAttribute("playsinline", "");
+      }
+      const p = this.audio.play();
+      if (p && p.catch) p.catch(() => {});
+      this.registrarControles();
+      if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "playing";
+    },
+
+    desactivar() {
+      if (this.audio) this.audio.pause();
+      if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "paused";
+    },
+
+    // Si el sistema pausó el audio (llamada, otra app), se retoma al leer el siguiente paso
+    asegurar() {
+      if (this.audio && this.audio.paused) this.activar();
+    },
+
+    mostrar(titulo, subtitulo) {
+      if (!("mediaSession" in navigator) || typeof MediaMetadata === "undefined") return;
+      try {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: titulo,
+          artist: subtitulo,
+          album: "Santo Rosario · Jesús por María",
+          artwork: [
+            { src: "img/icono-192.png", sizes: "192x192", type: "image/png" },
+            { src: "img/icono-512.png", sizes: "512x512", type: "image/png" },
+          ],
+        });
+      } catch (e) { /* sin metadatos */ }
+    },
+
+    registrarControles() {
+      if (this.controles || !("mediaSession" in navigator)) return;
+      this.controles = true;
+      const accion = (nombre, fn) => { try { navigator.mediaSession.setActionHandler(nombre, fn); } catch (e) { /* no admitida */ } };
+      accion("nexttrack", () => { if (!$("#rezo").hidden) siguiente(); });
+      accion("previoustrack", () => { if (!$("#rezo").hidden) anterior(); });
+      accion("play", () => { if (!config.audio) alternarVoz(); });
+      accion("pause", () => { if (config.audio) alternarVoz(); });
+      accion("stop", () => { if (config.audio) alternarVoz(); });
+    },
+  };
+
   function leerPasoEnVoz() {
     if (!config.audio || $("#rezo").hidden) return;
     const pasoLeido = actual;
+    const p = pasos[actual];
+    multimedia.asegurar();
+    multimedia.mostrar(
+      p.oracion ? ORACIONES[p.oracion].titulo : $("#contenido h2") ? $("#contenido h2").textContent : "Santo Rosario",
+      etiquetaPaso(p) || nombreRosario(config.misterios)
+    );
     voz.hablar(textoHablado(pasos[actual]), () => {
       if (config.autoAvance && actual === pasoLeido && actual < pasos.length - 1) {
         setTimeout(() => { if (config.audio && actual === pasoLeido) ir(actual + 1); }, 900);
@@ -719,7 +791,31 @@
     guardarConfig();
     pintarBotonVoz();
     voz.mantenerPantalla(config.audio);
-    if (config.audio) leerPasoEnVoz(); else voz.parar();
+    if (config.audio) {
+      multimedia.activar();
+      leerPasoEnVoz();
+    } else {
+      voz.parar();
+      multimedia.desactivar();
+    }
+  }
+
+  // Prueba para el carro: primero un sonido normal (como la música) y luego la voz.
+  // Si se oye la campana pero no la voz, el problema es la voz del navegador, no el Bluetooth.
+  function probarSonido() {
+    leerFormulario();
+    const estado = $("#estadoPrueba");
+    estado.textContent = "Sonando la campana…";
+    const campana = new Audio("audio/campana.wav");
+    const despues = () => {
+      estado.textContent = "Ahora la voz…";
+      voz.hablar("Esta es la voz del Santo Rosario. Dios te salve, María, llena eres de gracia.", () => {
+        estado.textContent = "¿Oíste la campana y la voz? Si solo oíste la campana, la voz de este navegador no sale por el carro.";
+      });
+    };
+    campana.addEventListener("ended", despues, { once: true });
+    const p = campana.play();
+    if (p && p.catch) p.catch(() => { estado.textContent = "El navegador no dejó sonar la campana."; despues(); });
   }
 
   /* =========================================================
@@ -846,6 +942,7 @@
     mostrar("rezo");
     pintarBotonVoz();
     voz.mantenerPantalla(config.audio);
+    if (config.audio) multimedia.activar(); // dentro del toque del usuario, como exigen los teléfonos
     renderPaso();
     $("#btnSiguiente").focus({ preventScroll: true });
   }
@@ -853,6 +950,7 @@
   // terminado: el Rosario se acabó y ya no hay nada que continuar
   function volverAInicio(terminado) {
     voz.parar();
+    multimedia.desactivar();
     voz.mantenerPantalla(false);
     if (terminado) store.del("rosario.progreso");
     mostrar("inicio");
@@ -930,7 +1028,8 @@
             <option value="1.1">Ágil</option>
           </select>
         </label>
-        <button class="btn suave mini" type="button" id="btnProbarVoz">Probar la voz</button>`);
+        <button class="btn suave mini" type="button" id="btnProbarVoz">Probar sonido (carro o auriculares)</button>
+        <p class="estado-prueba" id="estadoPrueba" aria-live="polite">Suena una campana y después la voz.</p>`);
       $("#velSel").value = String(config.velocidad);
       const llenarVoces = () => {
         const vs = voz.voces();
@@ -941,10 +1040,7 @@
       };
       llenarVoces();
       speechSynthesis.onvoiceschanged = () => { if ($("#vozSel")) llenarVoces(); };
-      $("#btnProbarVoz").addEventListener("click", () => {
-        leerFormulario();
-        voz.hablar("Dios te salve, María, llena eres de gracia; el Señor es contigo.");
-      });
+      $("#btnProbarVoz").addEventListener("click", probarSonido);
     }
 
     $("#intencion").value = config.intencion || "";
