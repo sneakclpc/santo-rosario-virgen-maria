@@ -1483,7 +1483,7 @@
     entrarAlRezo(); // en el mismo toque, para que el teléfono deje sonar la voz
     sala.ultimoEnvio = Date.now();
     try {
-      await Salas.actualizar(sala.codigo, { estado: "rezando", paso: 0 });
+      await Salas.comenzar(sala.codigo);
     } catch (e) {
       avisar("No se pudo avisar a los demás. Revisa tu conexión.");
     }

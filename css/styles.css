@@ -457,6 +457,7 @@ body[data-misterio="dolorosos"] .misterio-card { background: linear-gradient(180
 .grupo-codigo { display: flex; gap: 10px; align-items: flex-end; margin-top: 20px; padding-top: 18px; border-top: 1px dashed var(--linea); }
 .grupo-codigo .campo-texto { flex: 1; min-width: 0; }
 #codigoGrupo { text-transform: uppercase; letter-spacing: 0.18em; font-weight: 500; }
+.grupo-privacidad { margin: 16px 0 0; font-size: 0.8rem; color: var(--tinta-suave); }
 
 #sala { min-height: 100vh; }
 .barra-hueco { width: 70px; flex: none; }

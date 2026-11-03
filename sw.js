@@ -1,7 +1,7 @@
 /* Permite rezar sin conexión. Sube la versión al cambiar archivos.
    Estrategia: responde al instante con lo guardado y actualiza en segundo plano;
    así la app abre rápido aunque haya poca señal (en el carro, por ejemplo). */
-const CACHE = "rosario-v5";
+const CACHE = "rosario-v6";
 const ARCHIVOS = [
   "./", "index.html", "css/styles.css", "js/tema.js", "js/data.js", "js/salas-config.js", "js/salas.js", "js/qr.js", "js/app.js",
   "icon.svg", "manifest.webmanifest",

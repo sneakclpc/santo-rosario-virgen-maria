@@ -30,6 +30,7 @@ Cada `git push` a la rama `main` actualiza la página en uno o dos minutos. Cuan
 - Sin cuentas, cookies ni rastreo. La intención y las preferencias se guardan solo en el navegador de cada persona.
 - La página declara una política de seguridad de contenido (CSP) que solo permite cargar archivos del propio sitio y, para las salas, conectarse a Firebase.
 - **Salas en grupo:** usan Firebase (Google) con una identidad anónima por pestaña, sin correo ni contraseña. Cada sala guarda solo el nombre que escribe cada persona, los misterios elegidos, la intención del anfitrión y el paso actual. Las reglas de [firebase/reglas.json](firebase/reglas.json) hacen que solo quien tiene el código pueda verla, que solo el anfitrión y quien guía muevan el rosario, y que nadie pueda escribir el nombre de otro. La sala se borra cuando el anfitrión la cierra; si nadie la cierra, deja de poder abrirse a las 24 horas y se borra la próxima vez que el anfitrión abre la app.
+- **Estadísticas sin nombres:** la app suma, por día, cuántas salas se crean (`salas`), cuántas personas entran contando al anfitrión (`personas`) y cuántos rosarios en grupo se empiezan (`rezados`). No guarda nombres ni identidades; nadie puede leerlas desde la app, solo el dueño del proyecto en la consola de Firebase (**Realtime Database → Datos → estadisticas**).
 - Las fuentes tipográficas están alojadas en el proyecto: ninguna visita se envía a terceros.
 
 ## Activar las salas en grupo

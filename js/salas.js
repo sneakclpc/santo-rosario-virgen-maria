@@ -120,6 +120,16 @@
     return pedirJSON(url(ruta, token, extra), opciones);
   }
 
+  /* Estadísticas sin nombres: cuántas salas se crean, cuántas personas entran y
+     cuántos rosarios se rezan en grupo cada día. Si falla, no importa. */
+  function contar(...datos) {
+    const d = new Date();
+    const dia = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const cambios = {};
+    datos.forEach((k) => { cambios[`estadisticas/${dia}/${k}`] = { ".sv": { increment: 1 } }; });
+    db("", "PATCH", cambios).catch(() => {});
+  }
+
   function nuevoCodigo() {
     const azar = new Uint8Array(12);
     let codigo = "";
@@ -300,6 +310,7 @@
           // Una sola escritura para la sala y su fecha de caducidad
           await db("", "PATCH", { ["salas/" + codigo]: sala, ["caducan/" + codigo]: HORA_SERVIDOR });
           misSalas.anotar(codigo, true);
+          contar("salas", "personas");
           return codigo;
         } catch (e) {
           if (e.tipo !== "permiso") throw e; // si el código ya existía, se prueba otro
@@ -320,11 +331,20 @@
 
     async entrar(codigo, nombre) {
       await db(`salas/${codigo}/participantes/${sesion.uid}`, "PUT", { nombre, entro: HORA_SERVIDOR });
-      if (!misSalas.de(codigo)) misSalas.anotar(codigo, false);
+      // Solo cuenta la primera vez; al recargar la página o volver a anotarse no
+      if (!misSalas.de(codigo)) {
+        misSalas.anotar(codigo, false);
+        contar("personas");
+      }
     },
 
     actualizar(codigo, cambios) {
       return db("salas/" + codigo, "PATCH", cambios);
+    },
+
+    async comenzar(codigo) {
+      await db("salas/" + codigo, "PATCH", { estado: "rezando", paso: 0 });
+      contar("rezados");
     },
 
     moverA(codigo, paso) {
