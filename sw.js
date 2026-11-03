@@ -1,7 +1,7 @@
 /* Permite rezar sin conexión. Sube la versión al cambiar archivos.
    Estrategia: responde al instante con lo guardado y actualiza en segundo plano;
    así la app abre rápido aunque haya poca señal (en el carro, por ejemplo). */
-const CACHE = "rosario-v6";
+const CACHE = "rosario-v7";
 const ARCHIVOS = [
   "./", "index.html", "css/styles.css", "js/tema.js", "js/data.js", "js/salas-config.js", "js/salas.js", "js/qr.js", "js/app.js",
   "icon.svg", "manifest.webmanifest",
@@ -12,8 +12,9 @@ const ARCHIVOS = [
   "fonts/cormorant-garamond.woff2", "fonts/cormorant-garamond-italic.woff2",
 ];
 
+// «reload»: pide cada archivo al servidor, no la copia que el navegador pueda tener guardada
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ARCHIVOS)));
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ARCHIVOS.map((a) => new Request(a, { cache: "reload" })))));
 });
 
 // La app pide activar la versión nueva cuando la persona pulsa «Actualizar»

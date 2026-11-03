@@ -6,7 +6,7 @@ Sitio estático (HTML, CSS y JavaScript, sin dependencias) publicado con GitHub 
 
 - **Rosario gráfico:** cada cuenta, la Medalla Milagrosa y el crucifijo son botones. La cuenta rosa marca dónde vas.
 - **Misterios del día** propuestos automáticamente (lunes y sábado Gozosos; martes y viernes Dolorosos; miércoles y domingo Gloriosos; jueves Luminosos), con la opción de elegir otros o el **Rosario completo** (20 misterios).
-- **Cada misterio** trae su cita bíblica con enlace a la Biblia de Navarra, una síntesis del pasaje, el fruto del misterio y una meditación.
+- **Cada misterio** trae su cita bíblica con enlace a la Biblia de Navarra, una síntesis del pasaje, el fruto del misterio y una meditación, breve (un párrafo) o **profunda** (tres párrafos: contemplar la escena, el sentido del misterio y su aplicación a la vida).
 - **Oraciones opcionales:** Señor ábreme los labios, Acto de contrición, Credo, Oración de Fátima, jaculatoria, intenciones del Papa, Salve, Letanías Lauretanas, Bajo tu amparo, Consagración «Oh Señora mía», Acordaos, Bendita sea tu pureza, San Miguel y la oración final.
 - **Modo guía y respuesta** para rezar en familia, en grupo o en el carro: la voz dice la primera parte y deja la pausa para responder.
 - **Lectura en voz alta** con la voz del dispositivo, avance automático y pantalla siempre encendida.
@@ -58,4 +58,4 @@ Código bajo licencia MIT; textos propios e ilustraciones bajo CC BY-SA 4.0. Det
 
 ## Editar contenidos
 
-Todo el contenido está en [js/data.js](js/data.js): oraciones, letanías, misterios, citas, frutos y meditaciones.
+Todo el contenido está en [js/data.js](js/data.js): oraciones, letanías, misterios, citas, frutos y meditaciones. Cada misterio tiene `meditacion` (la breve) y `profunda` (una lista de párrafos).

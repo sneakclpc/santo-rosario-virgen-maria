@@ -216,6 +216,7 @@ a { color: var(--celeste-fuerte); }
 
 .interruptor { display: flex; align-items: center; gap: 10px; padding: 7px 0; cursor: pointer; font-size: 0.95rem; }
 .interruptor input { position: absolute; opacity: 0; pointer-events: none; }
+.interruptor.apagado { opacity: 0.45; cursor: default; }
 .pista { flex: none; width: 40px; height: 24px; border-radius: 999px; background: var(--pista); position: relative; transition: background 0.2s; }
 .pista::after {
   content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%;
@@ -358,6 +359,7 @@ body[data-misterio="dolorosos"] .misterio-card { background: linear-gradient(180
 .bloque .icono { color: var(--oro); }
 .bloque .ref { font-family: var(--texto); font-size: 0.95rem; color: var(--celeste-fuerte); font-weight: 500; }
 .sintesis, .meditacion, .cita-texto p { margin: 0; line-height: 1.7; }
+.meditacion + .meditacion { margin-top: 0.9em; }
 .cita-texto { margin: 0; padding-left: 14px; border-left: 3px solid var(--oro-suave); font-style: italic; }
 .fuente { font-size: 0.78rem; color: var(--tinta-suave); margin: 8px 0 0; }
 

@@ -15,6 +15,7 @@
     ]},
     { grupo: "En cada misterio", items: [
       { id: "meditaciones", label: "Meditación y cita bíblica", def: true },
+      { id: "profunda", label: "Meditación profunda, para contemplar con calma", def: false },
       { id: "fatima", label: "Oración de Fátima", def: true },
       { id: "jaculatoria", label: "Jaculatoria «María, Madre de gracia»", def: false },
     ]},
@@ -429,6 +430,9 @@
     return `<a href="https://www.ewtn.com/es/biblia/${c.libro.url}/${c.cap}" target="_blank" rel="noopener noreferrer">${esc(c.texto)}</a>`;
   }
 
+  // Meditación breve (un párrafo) o profunda (tres), según la opción elegida
+  const meditacionDe = (mis) => (config.profunda && mis.profunda ? mis.profunda : [mis.meditacion]);
+
   function tarjetaMisterio(m, grupo, enAnuncio) {
     const mis = MISTERIOS[grupo].lista[m];
     const cita = mis.cita.texto
@@ -443,7 +447,7 @@
         </div>
         <div class="bloque">
           <h4><span class="icono" aria-hidden="true">✦</span> Meditación</h4>
-          <p class="meditacion">${esc(mis.meditacion)}</p>
+          ${meditacionDe(mis).map((t) => `<p class="meditacion">${esc(t)}</p>`).join("")}
         </div>`
       : "";
     if (enAnuncio) {
@@ -687,10 +691,10 @@
     if (p.tipo === "misterio") {
       const mis = MISTERIOS[p.grupo].lista[p.misterio];
       let t = `${nombreMisterio(p.misterio, p.grupo)}: ${mis.titulo}. Fruto del misterio: ${mis.fruto}.`;
-      if (config.meditaciones) {
-        t += ` Lectura bíblica: ${citaHablada(mis.cita.ref)}. ${mis.cita.texto || mis.sintesis} Meditación. ${mis.meditacion}`;
-      }
-      return [t];
+      if (!config.meditaciones) return [t];
+      t += ` Lectura bíblica: ${citaHablada(mis.cita.ref)}. ${mis.cita.texto || mis.sintesis} Meditación.`;
+      // Un silencio breve entre párrafo y párrafo, para contemplar
+      return meditacionDe(mis).reduce((seg, parrafo, i) => seg.concat(i ? [1500, parrafo] : [`${t} ${parrafo}`]), []);
     }
     if (p.tipo === "letanias") {
       const seg = [];
@@ -1035,6 +1039,15 @@
       guardarConfig();
       aplicarPantalla();
     });
+    // La meditación profunda solo tiene sentido con la meditación activada
+    const conMeditacion = document.querySelector("input[name=meditaciones]");
+    const enlazarProfunda = () => {
+      const profunda = document.querySelector("input[name=profunda]");
+      profunda.disabled = !conMeditacion.checked;
+      profunda.closest(".interruptor").classList.toggle("apagado", !conMeditacion.checked);
+    };
+    conMeditacion.addEventListener("change", enlazarProfunda);
+    enlazarProfunda();
     document.querySelector("input[name=noche]").addEventListener("change", (e) => {
       config.noche = e.target.checked;
       guardarConfig();
@@ -1105,7 +1118,7 @@
   const Salas = window.Salas || { disponible: false };
 
   // Opciones que fija el anfitrión: así todos rezan exactamente la misma secuencia
-  const CLAVES_SALA = ["misterios", "apertura", "contricion", "credo", "meditaciones", "fatima", "jaculatoria",
+  const CLAVES_SALA = ["misterios", "apertura", "contricion", "credo", "meditaciones", "profunda", "fatima", "jaculatoria",
     "papa", "salve", "letanias", "guia", "latam"].concat(FINALES);
 
   const sala = {
