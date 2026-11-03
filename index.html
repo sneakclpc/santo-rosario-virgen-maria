@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; media-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://santo-rosario-b699e-default-rtdb.firebaseio.com https://*.firebaseio.com; manifest-src 'self'; worker-src 'self'; media-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <title>Santo Rosario · Jesús por María</title>
   <meta name="description" content="Santo Rosario interactivo y gratuito: misterios gozosos, luminosos, dolorosos y gloriosos, con citas bíblicas, meditaciones, letanías y lectura en voz alta.">
@@ -49,6 +49,7 @@
       <div class="acciones-hero">
         <button class="btn primario grande" id="btnRapido" type="button">Rezar ahora</button>
         <button class="btn suave" id="btnContinuar" type="button" hidden></button>
+        <button class="btn suave" id="btnGrupo" type="button" hidden>Rezar en grupo con otras personas</button>
       </div>
     </header>
 
@@ -68,6 +69,24 @@
         <button class="btn primario grande" type="submit">Comenzar el Santo Rosario</button>
       </div>
     </form>
+
+    <section id="tarjetaGrupo" class="tarjeta grupo" aria-labelledby="tituloGrupo" hidden>
+      <h2 class="seccion" id="tituloGrupo">Rezar en grupo</h2>
+      <p class="grupo-intro">Crea una sala y comparte su código QR. Todos ven la misma oración y la misma cuenta del rosario, y avanzan juntos cuando avanza quien guía.</p>
+      <label class="campo-texto">Tu nombre
+        <input id="nombreGrupo" type="text" maxlength="30" autocomplete="nickname" placeholder="Así te verán los demás">
+      </label>
+      <div class="grupo-acciones">
+        <button class="btn primario" id="btnCrearSala" type="button">Crear sala</button>
+        <p class="grupo-nota" id="notaCrear"></p>
+      </div>
+      <form id="formCodigo" class="grupo-codigo">
+        <label class="campo-texto">¿Te invitaron? Escribe el código
+          <input id="codigoGrupo" type="text" maxlength="8" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="K7M Q2P">
+        </label>
+        <button class="btn suave" type="submit">Entrar</button>
+      </form>
+    </section>
 
     <footer class="pie">
       <p>Hecho con amor para la mayor gloria de Dios. Libre y gratuito para todos.</p>
@@ -116,6 +135,12 @@
     <div class="progreso" role="progressbar" aria-label="Avance del rosario" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
       <div id="progreso"></div>
     </div>
+    <div id="bandaSala" class="banda-sala" hidden>
+      <span id="bandaTexto"></span>
+      <label id="bandaGuia" class="banda-guia" hidden>Guía:
+        <select id="selGuia"></select>
+      </label>
+    </div>
 
     <div class="rezo-grid">
       <section class="lienzo" aria-label="Rosario: la cuenta rosa marca dónde vas; toca una cuenta para ir a esa oración">
@@ -130,12 +155,53 @@
         <nav class="controles" aria-label="Avanzar en el rosario">
           <button class="btn suave" id="btnAnterior" type="button">Anterior</button>
           <button class="btn primario" id="btnSiguiente" type="button">Siguiente</button>
+          <p id="sigueGuia" class="sigue-guia" hidden></p>
         </nav>
       </section>
     </div>
   </main>
 
+  <!-- ============ Sala para rezar en grupo ============ -->
+  <main id="sala" class="pantalla" hidden>
+    <header class="barra">
+      <button class="btn icono" id="btnSalirSala" type="button">‹ Salir</button>
+      <h1 class="barra-titulo">Rezar en grupo</h1>
+      <span class="barra-hueco" aria-hidden="true"></span>
+    </header>
+    <div class="sala-cuerpo">
+      <section class="tarjeta sala-tarjeta">
+        <p id="salaAnfitrion" class="sala-pre"></p>
+        <h2 id="salaMisterios" class="sala-titulo">Abriendo la sala…</h2>
+        <div id="salaIntencion" class="intencion" hidden><span>Intención</span><p></p></div>
+
+        <form id="formEntrar" class="sala-entrar" hidden>
+          <label class="campo-texto">Tu nombre
+            <input id="nombreEntrar" type="text" maxlength="30" autocomplete="nickname" required>
+          </label>
+          <button class="btn primario grande" type="submit">Entrar a la sala</button>
+        </form>
+
+        <p id="salaEstado" class="sala-estado" aria-live="polite"></p>
+        <button class="btn primario grande" id="btnComenzarSala" type="button" hidden>Comenzar el Santo Rosario</button>
+
+        <div class="sala-invitar">
+          <div id="salaQR" class="sala-qr"></div>
+          <p class="sala-codigo">Código de la sala <strong id="salaCodigo"></strong></p>
+          <button class="btn suave mini" id="btnInvitar" type="button">Enviar invitación</button>
+        </div>
+
+        <h3 class="sala-sub">En la sala <span id="salaCuantos"></span></h3>
+        <ul id="salaPersonas" class="sala-personas"></ul>
+        <p class="sala-consejo">La app une las pantallas, no las voces: para oírse, hagan también una llamada de WhatsApp o Meet.
+          Quien quiera puede activar «Escuchar» en su teléfono.</p>
+      </section>
+    </div>
+  </main>
+
   <script src="js/data.js"></script>
+  <script src="js/salas-config.js"></script>
+  <script src="js/salas.js"></script>
+  <script src="js/qr.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

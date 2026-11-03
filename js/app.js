@@ -491,12 +491,15 @@
 
     if (p.tipo === "intro") {
       const intencion = config.intencion.trim();
+      const ayuda = puedoMover()
+        ? "Toca <strong>Siguiente</strong>, desliza o pulsa una cuenta del rosario para avanzar."
+        : "Quien guía avanza por todos: tu pantalla lo sigue sola.";
       html = `
         <h2>${esc(nombreRosario(config.misterios))}</h2>
         <p class="lead">Ponte en presencia de Dios, Padre, Hijo y Espíritu Santo, y de la mano de María,
         Madre de Dios y Madre nuestra, ofrece este Santo Rosario.</p>
-        ${intencion ? `<div class="intencion"><span>Mi intención</span><p>${esc(intencion)}</p></div>` : ""}
-        <p class="ayuda">Toca <strong>Siguiente</strong>, desliza o pulsa una cuenta del rosario para avanzar.</p>`;
+        ${intencion ? `<div class="intencion"><span>${enSala() ? "Intención de la sala" : "Mi intención"}</span><p>${esc(intencion)}</p></div>` : ""}
+        <p class="ayuda">${ayuda}</p>`;
     } else if (p.tipo === "misterio") {
       const mis = MISTERIOS[p.grupo].lista[p.misterio];
       html = `
@@ -514,7 +517,9 @@
         permanezca siempre contigo.</p>
         <p class="jaculatoria-fin">«Ad Iesum per Mariam» — A Jesús por María</p>
         <div class="acciones-fin">
-          <button class="btn primario" id="btnOtraVez" type="button">Rezar de nuevo</button>
+          ${enSala()
+            ? `<button class="btn primario" id="btnSalaFin" type="button">${soyAnfitrion() ? "Cerrar la sala para todos" : "Salir de la sala"}</button>`
+            : `<button class="btn primario" id="btnOtraVez" type="button">Rezar de nuevo</button>`}
           <button class="btn suave" id="btnCompartirFin" type="button">Compartir esta app</button>
         </div>`;
     } else {
@@ -549,6 +554,8 @@
 
     const otra = $("#btnOtraVez");
     if (otra) otra.addEventListener("click", () => volverAInicio(true));
+    const finSala = $("#btnSalaFin");
+    if (finSala) finSala.addEventListener("click", () => salirDeSala(false));
     const comp = $("#btnCompartirFin");
     if (comp) comp.addEventListener("click", compartir);
 
@@ -561,6 +568,7 @@
 
     pintarEstado();
     if (config.audio) leerPasoEnVoz();
+    if (enSala()) return; // en grupo no se guarda «continuar donde ibas»
     if (ultimo) store.del("rosario.progreso");
     else store.set("rosario.progreso", { cfg: config, actual, fecha: Date.now(), etiqueta });
   }
@@ -674,7 +682,7 @@
       const intencion = config.intencion.trim();
       return [`${nombreRosario(config.misterios)}. Ponte en presencia de Dios, Padre, Hijo y Espíritu Santo, ` +
         `y de la mano de María, Madre de Dios y Madre nuestra, ofrece este Santo Rosario.` +
-        (intencion ? ` Mi intención: ${intencion}.` : "")];
+        (intencion ? ` ${enSala() ? "Intención de la sala" : "Mi intención"}: ${intencion}.` : "")];
     }
     if (p.tipo === "misterio") {
       const mis = MISTERIOS[p.grupo].lista[p.misterio];
@@ -772,8 +780,8 @@
       etiquetaPaso(p) || nombreRosario(config.misterios)
     );
     voz.hablar(textoHablado(pasos[actual]), () => {
-      if (config.autoAvance && actual === pasoLeido && actual < pasos.length - 1) {
-        setTimeout(() => { if (config.audio && actual === pasoLeido) ir(actual + 1); }, 900);
+      if (config.autoAvance && puedoMover() && actual === pasoLeido && actual < pasos.length - 1) {
+        setTimeout(() => { if (config.audio && puedoMover() && actual === pasoLeido) ir(actual + 1); }, 900);
       }
     });
   }
@@ -855,8 +863,9 @@
     if (c) c.checked = config.noche;
   }
 
+  // En una sala se guardan las preferencias propias, no las oraciones que eligió el anfitrión
   function guardarConfig() {
-    store.set("rosario.config", config);
+    store.set("rosario.config", enSala() && sala.propia ? Object.assign({}, config, sala.propia) : config);
   }
 
   /* =========================================================
@@ -903,14 +912,24 @@
   function ir(i) {
     actual = Math.max(0, Math.min(pasos.length - 1, i));
     renderPaso();
+    if (enSala() && sala.datos.estado === "rezando") enviarPaso();
   }
   const siguiente = () => {
-    if (actual === pasos.length - 1) { volverAInicio(true); return; }
+    if (!puedoMover()) { avisarGuia(); return; }
+    if (actual === pasos.length - 1) {
+      if (enSala()) salirDeSala(false);
+      else volverAInicio(true);
+      return;
+    }
     ir(actual + 1);
   };
-  const anterior = () => ir(actual - 1);
+  const anterior = () => {
+    if (!puedoMover()) { avisarGuia(); return; }
+    ir(actual - 1);
+  };
 
   function irACuenta(id) {
+    if (!puedoMover()) { avisarGuia(); return; }
     const indices = [];
     pasos.forEach((p, i) => { if (p.cuenta === id) indices.push(i); });
     if (!indices.length) return;
@@ -937,14 +956,20 @@
     guardarConfig();
     pasos = construirPasos(config);
     actual = progreso ? Math.min(progreso.actual, pasos.length - 1) : 0;
+    abrirRezo();
+  }
+
+  function abrirRezo() {
     $("#tituloRezo").textContent = nombreRosario(config.misterios);
     document.body.dataset.misterio = config.misterios === "completo" ? "gozosos" : config.misterios;
     mostrar("rezo");
     pintarBotonVoz();
+    pintarBanda();
     voz.mantenerPantalla(config.audio);
     if (config.audio) multimedia.activar(); // dentro del toque del usuario, como exigen los teléfonos
     renderPaso();
-    $("#btnSiguiente").focus({ preventScroll: true });
+    const foco = puedoMover() ? $("#btnSiguiente") : $("#btnSalir");
+    foco.focus({ preventScroll: true });
   }
 
   // terminado: el Rosario se acabó y ya no hay nada que continuar
@@ -1044,6 +1069,10 @@
     }
 
     $("#intencion").value = config.intencion || "";
+    if (Salas.disponible) {
+      notaCrearSala();
+      if (!$("#nombreGrupo").value) $("#nombreGrupo").value = nombrePropio();
+    }
 
     const prog = leerProgreso();
     const cont = $("#btnContinuar");
@@ -1066,6 +1095,476 @@
     config.intencion = ($("#intencion").value || "").slice(0, 400);
     if ($("#vozSel")) config.voz = $("#vozSel").value;
     if ($("#velSel")) config.velocidad = Number($("#velSel").value) || PREDETERMINADA.velocidad;
+  }
+
+  /* =========================================================
+     Rezar en grupo (salas)
+     Quien crea la sala elige los misterios y las oraciones; quien guía
+     avanza y las pantallas de todos lo siguen. La conexión está en js/salas.js.
+     ========================================================= */
+  const Salas = window.Salas || { disponible: false };
+
+  // Opciones que fija el anfitrión: así todos rezan exactamente la misma secuencia
+  const CLAVES_SALA = ["misterios", "apertura", "contricion", "credo", "meditaciones", "fatima", "jaculatoria",
+    "papa", "salve", "letanias", "guia", "latam"].concat(FINALES);
+
+  const sala = {
+    codigo: null,
+    datos: null,      // copia limpia de la sala, ver limpiarSala()
+    escucha: null,
+    dentro: false,    // ya entró (como anfitrión o participante)
+    propia: null,     // opciones propias, para devolverlas al salir
+    conexion: "conectada",
+    ultimoEnvio: 0,
+    pendiente: null,
+    enviando: false,
+    opcionesGuia: "",
+    reanotado: 0,
+  };
+
+  const enSala = () => !!(sala.codigo && sala.dentro && sala.datos);
+  const soyAnfitrion = () => enSala() && sala.datos.anfitrion === Salas.uid();
+  const soyGuia = () => soyAnfitrion() || (enSala() && sala.datos.guia === Salas.uid());
+  const puedoMover = () => !enSala() || soyGuia();
+
+  const sesionSala = {
+    get() { try { return sessionStorage.getItem("rosario.salaUnida"); } catch (e) { return null; } },
+    set(c) {
+      try { if (c) sessionStorage.setItem("rosario.salaUnida", c); else sessionStorage.removeItem("rosario.salaUnida"); } catch (e) { /* nada */ }
+    },
+  };
+
+  const formatoCodigo = (c) => c.slice(0, 3) + " " + c.slice(3);
+  const enlaceSala = (c) => location.origin + location.pathname + "?sala=" + c;
+
+  function nombrePropio() {
+    const n = store.get("rosario.nombre");
+    return typeof n === "string" ? n.slice(0, 30) : "";
+  }
+
+  function leerNombre(input) {
+    const n = input.value.replace(/\s+/g, " ").trim().slice(0, 30);
+    if (n) store.set("rosario.nombre", n);
+    return n;
+  }
+
+  function cfgDeSala(c) {
+    const limpia = sanear(c);
+    return Object.fromEntries(CLAVES_SALA.map((k) => [k, limpia[k]]));
+  }
+
+  // Todo lo que llega de la red se trata como dato no confiable
+  function limpiarSala(d) {
+    if (!d || typeof d !== "object") return null;
+    const texto = (v, n) => (typeof v === "string" ? v.slice(0, n) : "");
+    const personas = [];
+    if (d.participantes && typeof d.participantes === "object") {
+      Object.keys(d.participantes).forEach((uid) => {
+        const p = d.participantes[uid];
+        if (uid !== d.anfitrion && p && typeof p === "object") {
+          personas.push({ uid, nombre: texto(p.nombre, 30).trim() || "Alguien", entro: Number(p.entro) || 0 });
+        }
+      });
+    }
+    personas.sort((a, b) => a.entro - b.entro);
+    let cfg = {};
+    try { cfg = JSON.parse(d.cfg); } catch (e) { /* opciones por defecto */ }
+    return {
+      anfitrion: texto(d.anfitrion, 128),
+      nombre: texto(d.nombre, 30).trim() || "Anfitrión",
+      estado: ["espera", "rezando", "terminada"].includes(d.estado) ? d.estado : "espera",
+      cfg: cfgDeSala(cfg),
+      intencion: texto(d.intencion, 400),
+      paso: Number.isInteger(d.paso) && d.paso >= 0 ? d.paso : 0,
+      guia: texto(d.guia, 128),
+      personas,
+    };
+  }
+
+  function nombreDe(uid) {
+    const d = sala.datos;
+    if (!d) return "";
+    if (uid === Salas.uid()) return "tú";
+    if (uid === d.anfitrion) return d.nombre;
+    const p = d.personas.find((x) => x.uid === uid);
+    return p ? p.nombre : d.nombre;
+  }
+
+  function mensajeError(e) {
+    if (e && e.tipo === "red") return "No hay conexión. Revisa tu internet e inténtalo de nuevo.";
+    if (e && e.tipo === "config") return "Las salas no están disponibles en este momento.";
+    return "No se pudo completar. Inténtalo de nuevo.";
+  }
+
+  function avisarGuia() {
+    avisar(`Avanza quien guía: ${nombreDe(sala.datos.guia)}.`);
+  }
+
+  async function crearSala() {
+    const boton = $("#btnCrearSala");
+    const nombre = leerNombre($("#nombreGrupo")) || "Anfitrión";
+    leerFormulario();
+    guardarConfig();
+    boton.disabled = true;
+    boton.textContent = "Creando la sala…";
+    try {
+      const codigo = await Salas.crear({ nombre, cfg: cfgDeSala(config), intencion: config.intencion.trim() });
+      await abrirSala(codigo);
+    } catch (e) {
+      avisar(mensajeError(e));
+    } finally {
+      boton.disabled = false;
+      boton.textContent = "Crear sala";
+    }
+  }
+
+  async function abrirSala(codigo) {
+    const yaEstaba = sesionSala.get() === codigo; // se recargó la página dentro de la sala
+    dejarSala();
+    sala.codigo = codigo;
+    sala.propia = Object.fromEntries(CLAVES_SALA.concat("intencion").map((k) => [k, config[k]]));
+    try { history.replaceState(null, "", "?sala=" + codigo); } catch (e) { /* nada */ }
+    mostrar("sala");
+    $("#salaAnfitrion").textContent = "";
+    $("#salaMisterios").textContent = "Abriendo la sala…";
+    $("#salaIntencion").hidden = true;
+    $("#formEntrar").hidden = true;
+    $("#btnComenzarSala").hidden = true;
+    $("#salaPersonas").textContent = "";
+    $("#salaCuantos").textContent = "";
+    $("#salaEstado").textContent = "";
+    $("#salaQR").innerHTML = QR.svg(enlaceSala(codigo), "Código QR para entrar a la sala");
+    $("#salaCodigo").textContent = formatoCodigo(codigo);
+    try {
+      await Salas.conectar(codigo);
+      const d = limpiarSala(await Salas.leer(codigo));
+      if (sala.codigo !== codigo) return;
+      if (!d || d.estado === "terminada") {
+        Salas.olvidar(codigo);
+        $("#salaMisterios").textContent = "Esta sala ya no existe";
+        $("#salaEstado").textContent = "Puede que haya terminado o que el código no sea correcto. Las salas duran como máximo un día.";
+        return;
+      }
+      sala.datos = d;
+      const uid = Salas.uid();
+      sala.dentro = d.anfitrion === uid || d.personas.some((p) => p.uid === uid);
+      // Al recargar la página se vuelve a entrar solo
+      if (!sala.dentro && yaEstaba && nombrePropio()) {
+        await Salas.entrar(codigo, nombrePropio());
+        sala.dentro = true;
+      }
+      if (sala.dentro) sesionSala.set(codigo);
+      sala.escucha = Salas.escuchar(codigo, alCambiarSala, alEstadoSala);
+      if (sala.dentro && d.estado === "rezando") entrarAlRezo();
+      else pintarSala();
+    } catch (e) {
+      if (sala.codigo === codigo) $("#salaEstado").textContent = mensajeError(e);
+    }
+  }
+
+  // Cierra la escucha y devuelve las opciones propias (sin tocar la pantalla)
+  function dejarSala() {
+    if (sala.escucha) sala.escucha.cerrar();
+    if (sala.propia) Object.assign(config, sala.propia);
+    Object.assign(sala, { codigo: null, datos: null, escucha: null, dentro: false, propia: null, conexion: "conectada", pendiente: null, enviando: false, opcionesGuia: "", reanotado: 0 });
+    sesionSala.set(null);
+    try { if (location.search) history.replaceState(null, "", location.pathname); } catch (e) { /* nada */ }
+    $("#bandaSala").hidden = true;
+    pintarControles();
+  }
+
+  async function salirDeSala(preguntar) {
+    if (!sala.codigo) return;
+    const codigo = sala.codigo;
+    const anfitrion = soyAnfitrion();
+    const dentro = sala.dentro;
+    if (anfitrion && preguntar && !window.confirm("¿Cerrar la sala para todos? Los demás volverán al inicio.")) return;
+    dejarSala();
+    volverAInicio(false);
+    try {
+      if (anfitrion) await Salas.cerrar(codigo);
+      else if (dentro) await Salas.salir(codigo);
+    } catch (e) { /* si no hay conexión, la sala caduca sola en un día */ }
+  }
+
+  function salaTerminada() {
+    const eraAnfitrion = soyAnfitrion();
+    Salas.olvidar(sala.codigo);
+    dejarSala();
+    volverAInicio(false);
+    if (!eraAnfitrion) avisar("La sala terminó. ¡Que Dios te bendiga!");
+  }
+
+  function alCambiarSala(bruto) {
+    if (!sala.codigo) return;
+    const d = limpiarSala(bruto);
+    if (!d || d.estado === "terminada") {
+      if (sala.datos) salaTerminada();
+      return;
+    }
+    sala.datos = d;
+    if (!sala.dentro) { pintarSala(); return; }
+    // Si se borró de la lista sin querer (por ejemplo, al cerrar otra pestaña), se vuelve a anotar
+    const uid = Salas.uid();
+    if (d.anfitrion !== uid && !d.personas.some((p) => p.uid === uid) && Date.now() - sala.reanotado > 10000) {
+      sala.reanotado = Date.now();
+      Salas.entrar(sala.codigo, nombrePropio() || "Alguien").catch(() => {});
+    }
+    if (d.estado !== "rezando") { pintarSala(); return; }
+    if ($("#rezo").hidden) { entrarAlRezo(); return; }
+    // Quien acaba de avanzar ignora el eco de sus propios pasos
+    const eco = soyGuia() && (sala.enviando || Date.now() - sala.ultimoEnvio < 2500);
+    if (d.paso !== actual && !eco) {
+      actual = Math.min(d.paso, pasos.length - 1);
+      renderPaso();
+    }
+    pintarBanda();
+  }
+
+  function alEstadoSala(estado) {
+    sala.conexion = estado;
+    if (!sala.codigo) return;
+    if (!$("#rezo").hidden) pintarBanda();
+    else if (sala.datos) pintarSala();
+  }
+
+  function entrarAlRezo() {
+    const d = sala.datos;
+    Object.assign(config, d.cfg, { intencion: d.intencion });
+    pasos = construirPasos(config);
+    actual = Math.min(d.paso, pasos.length - 1);
+    abrirRezo();
+  }
+
+  // Envía el paso actual; si se avanza muy rápido, solo viaja el último
+  function enviarPaso() {
+    sala.ultimoEnvio = Date.now();
+    sala.pendiente = actual;
+    if (sala.enviando) return;
+    sala.enviando = true;
+    const codigo = sala.codigo;
+    const enviar = () => {
+      const p = sala.pendiente;
+      Salas.moverA(codigo, p)
+        .catch((e) => { if (sala.codigo === codigo) avisar(e.tipo === "permiso" ? "Ya no guías la sala." : "Sin conexión: los demás no ven este cambio."); })
+        .finally(() => {
+          sala.ultimoEnvio = Date.now();
+          if (sala.codigo === codigo && sala.pendiente !== p) enviar();
+          else sala.enviando = false;
+        });
+    };
+    enviar();
+  }
+
+  function pintarSala() {
+    const d = sala.datos;
+    if (!d || $("#sala").hidden) return;
+    const anfitrion = d.anfitrion === Salas.uid();
+    $("#salaAnfitrion").textContent = anfitrion ? "Tu sala de oración" : `${d.nombre} te invita a rezar`;
+    $("#salaMisterios").textContent = nombreRosario(d.cfg.misterios);
+    const caja = $("#salaIntencion");
+    caja.hidden = !d.intencion.trim();
+    caja.querySelector("p").textContent = d.intencion;
+
+    const form = $("#formEntrar");
+    if (form.hidden && !sala.dentro) $("#nombreEntrar").value = nombrePropio();
+    form.hidden = sala.dentro;
+    $("#btnComenzarSala").hidden = !anfitrion;
+
+    let estado;
+    if (sala.conexion === "reconectando") estado = "Reconectando…";
+    else if (!sala.dentro) estado = d.estado === "rezando" ? "Ya empezaron a rezar: entra para unirte." : "Escribe tu nombre para entrar.";
+    else if (anfitrion) estado = d.personas.length ? "Cuando estén todos, pulsa «Comenzar»." : "Comparte el código QR o la invitación para que entren los demás.";
+    else estado = `Esperando a que ${d.nombre} comience…`;
+    $("#salaEstado").textContent = estado;
+
+    const lista = $("#salaPersonas");
+    lista.textContent = "";
+    const fila = (nombre, rol) => {
+      const li = document.createElement("li");
+      const n = document.createElement("span");
+      n.textContent = nombre;
+      li.appendChild(n);
+      if (rol) {
+        const r = document.createElement("span");
+        r.className = "rol";
+        r.textContent = rol;
+        li.appendChild(r);
+      }
+      lista.appendChild(li);
+    };
+    fila(d.nombre, anfitrion ? "anfitrión · tú" : "anfitrión");
+    d.personas.forEach((p) => fila(p.nombre, p.uid === Salas.uid() ? "tú" : ""));
+    $("#salaCuantos").textContent = `(${d.personas.length + 1})`;
+  }
+
+  function pintarControles() {
+    const mueve = puedoMover();
+    $("#btnAnterior").hidden = !mueve;
+    $("#btnSiguiente").hidden = !mueve;
+    $("#sigueGuia").hidden = mueve;
+    const s = $("#btnSalir");
+    s.textContent = enSala() ? "‹ Salir" : "‹ Inicio";
+    s.setAttribute("aria-label", !enSala() ? "Volver al inicio (se guarda por dónde vas)"
+      : soyAnfitrion() ? "Cerrar la sala para todos" : "Salir de la sala");
+  }
+
+  function pintarBanda() {
+    pintarControles();
+    const banda = $("#bandaSala");
+    banda.hidden = !enSala();
+    if (!enSala()) return;
+    const d = sala.datos;
+    const total = d.personas.length + 1;
+    const guia = nombreDe(d.guia);
+    banda.classList.toggle("sin-conexion", sala.conexion === "reconectando");
+    $("#bandaTexto").textContent =
+      (sala.conexion === "reconectando" ? "Reconectando… · " : "") +
+      `Sala ${formatoCodigo(sala.codigo)} · ${total} ${total === 1 ? "persona" : "personas"}` +
+      (soyAnfitrion() ? "" : ` · Guía: ${guia}`);
+    $("#sigueGuia").textContent = `Guía: ${guia}. Tu pantalla avanza sola.`;
+
+    const etiqueta = $("#bandaGuia");
+    etiqueta.hidden = !soyAnfitrion();
+    if (!soyAnfitrion()) return;
+    // El anfitrión puede pasar la guía a otra persona (por ejemplo, un misterio cada uno)
+    const opciones = [{ uid: d.anfitrion, nombre: `${d.nombre} (tú)` }].concat(d.personas);
+    const clave = opciones.map((o) => o.uid + ":" + o.nombre).join("|");
+    const sel = $("#selGuia");
+    if (clave !== sala.opcionesGuia) {
+      sala.opcionesGuia = clave;
+      sel.textContent = "";
+      opciones.forEach((o) => {
+        const op = document.createElement("option");
+        op.value = o.uid;
+        op.textContent = o.nombre;
+        sel.appendChild(op);
+      });
+    }
+    sel.value = opciones.some((o) => o.uid === d.guia) ? d.guia : d.anfitrion;
+  }
+
+  async function cambiarGuia() {
+    if (!soyAnfitrion()) return;
+    const uid = $("#selGuia").value;
+    try {
+      await Salas.actualizar(sala.codigo, { guia: uid });
+      avisar(uid === Salas.uid() ? "Ahora guías tú." : `Ahora guía ${nombreDe(uid)}.`);
+    } catch (e) {
+      avisar(mensajeError(e));
+      pintarBanda();
+    }
+  }
+
+  async function entrarEnSala(e) {
+    e.preventDefault();
+    const nombre = leerNombre($("#nombreEntrar"));
+    if (!nombre || !sala.codigo) { $("#nombreEntrar").focus(); return; }
+    // Dentro del toque: así el teléfono deja sonar la voz después
+    if (config.audio) {
+      multimedia.activar();
+      voz.hablar("Entraste en la sala.");
+    }
+    try {
+      await Salas.entrar(sala.codigo, nombre);
+      sala.dentro = true;
+      sesionSala.set(sala.codigo);
+      if (sala.datos.estado === "rezando") entrarAlRezo();
+      else pintarSala();
+    } catch (err) {
+      $("#salaEstado").textContent = err.tipo === "permiso" ? "Esta sala ya no admite personas." : mensajeError(err);
+    }
+  }
+
+  async function comenzarSala() {
+    if (!soyAnfitrion()) return;
+    sala.datos.estado = "rezando";
+    sala.datos.paso = 0;
+    entrarAlRezo(); // en el mismo toque, para que el teléfono deje sonar la voz
+    sala.ultimoEnvio = Date.now();
+    try {
+      await Salas.actualizar(sala.codigo, { estado: "rezando", paso: 0 });
+    } catch (e) {
+      avisar("No se pudo avisar a los demás. Revisa tu conexión.");
+    }
+  }
+
+  async function invitar() {
+    if (!sala.codigo) return;
+    const url = enlaceSala(sala.codigo);
+    const texto = `Te invito a rezar el Santo Rosario en grupo. Entra con este enlace o con el código ${formatoCodigo(sala.codigo)}:`;
+    try {
+      if (navigator.share) { await navigator.share({ title: "Santo Rosario en grupo", text: texto, url }); return; }
+      await navigator.clipboard.writeText(`${texto} ${url}`);
+      avisar("Invitación copiada. Ya puedes pegarla en WhatsApp.");
+    } catch (e) {
+      if (e && e.name === "AbortError") return;
+      avisar(`Comparte este enlace: ${url}`);
+    }
+  }
+
+  function notaCrearSala() {
+    const sel = document.querySelector("input[name=misterios]:checked");
+    const clave = sel && CLAVES_MISTERIOS.includes(sel.value) ? sel.value : config.misterios;
+    $("#notaCrear").textContent = clave === "completo"
+      ? "Se rezará el Rosario completo con las oraciones elegidas arriba."
+      : `Se rezarán los ${nombreRosario(clave)} con las oraciones elegidas arriba.`;
+  }
+
+  function prepararSalas() {
+    const pedido = new URLSearchParams(location.search).get("sala");
+    if (!Salas.disponible) {
+      if (pedido) {
+        try { history.replaceState(null, "", location.pathname); } catch (e) { /* nada */ }
+        avisar("Las salas para rezar en grupo todavía no están disponibles.");
+      }
+      return;
+    }
+    $("#tarjetaGrupo").hidden = false;
+    $("#btnGrupo").hidden = false;
+    $("#btnGrupo").addEventListener("click", () => {
+      $("#tarjetaGrupo").scrollIntoView({ behavior: "smooth", block: "start" });
+      $("#nombreGrupo").focus({ preventScroll: true });
+    });
+    $("#btnCrearSala").addEventListener("click", crearSala);
+    $("#selectorMisterios").addEventListener("change", notaCrearSala);
+    $("#formCodigo").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const c = Salas.normalizar($("#codigoGrupo").value);
+      if (!c) { avisar("El código tiene 6 letras y números, por ejemplo K7M Q2P."); return; }
+      leerNombre($("#nombreGrupo"));
+      abrirSala(c);
+    });
+    $("#formEntrar").addEventListener("submit", entrarEnSala);
+    $("#btnComenzarSala").addEventListener("click", comenzarSala);
+    $("#btnInvitar").addEventListener("click", invitar);
+    $("#selGuia").addEventListener("change", cambiarGuia);
+    $("#btnSalirSala").addEventListener("click", () => {
+      if (sala.dentro) salirDeSala(true);
+      else { dejarSala(); volverAInicio(false); }
+    });
+    // Al cerrar la pestaña, el participante sale de la lista
+    window.addEventListener("pagehide", () => {
+      if (enSala() && !soyAnfitrion()) Salas.salirAlCerrar(sala.codigo);
+    });
+    // Al volver a la página desde el historial, la conexión en vivo se abre de nuevo
+    window.addEventListener("pageshow", (e) => {
+      if (!e.persisted || !sala.codigo || !sala.escucha) return;
+      sala.escucha.cerrar();
+      sala.reanotado = 0;
+      sala.escucha = Salas.escuchar(sala.codigo, alCambiarSala, alEstadoSala);
+    });
+
+    const codigo = Salas.normalizar(pedido);
+    if (codigo) {
+      abrirSala(codigo);
+      return;
+    }
+    if (pedido) {
+      try { history.replaceState(null, "", location.pathname); } catch (e) { /* nada */ }
+    }
+    // Más tarde y sin estorbar: borra las salas propias de ayer que nadie cerró
+    setTimeout(() => { if (!sala.codigo) Salas.limpiarViejas(); }, 5000);
   }
 
   /* =========================================================
@@ -1107,7 +1606,7 @@
     });
     $("#btnSiguiente").addEventListener("click", siguiente);
     $("#btnAnterior").addEventListener("click", anterior);
-    $("#btnSalir").addEventListener("click", () => volverAInicio(false));
+    $("#btnSalir").addEventListener("click", () => (enSala() ? salirDeSala(true) : volverAInicio(false)));
     $("#btnVoz").addEventListener("click", alternarVoz);
     $("#btnLetra").addEventListener("click", cambiarLetra);
     $("#btnTema").addEventListener("click", alternarTema);
@@ -1146,6 +1645,7 @@
       Object.assign(config, PREDETERMINADA);
       renderInicio();
     }
+    prepararSalas();
     registrarServiceWorker();
   }
 

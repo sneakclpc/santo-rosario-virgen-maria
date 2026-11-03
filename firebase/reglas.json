@@ -1,0 +1,41 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "salas": {
+      "$codigo": {
+        ".read": "auth != null && data.child('creada').isNumber() && data.child('creada').val() > now - 86400000",
+        ".write": "auth != null && $codigo.matches(/^[A-Z2-9]{6}$/) && ((!data.exists() && newData.child('anfitrion').val() === auth.uid && newData.hasChildren(['nombre', 'creada', 'estado', 'cfg', 'paso', 'guia'])) || (data.child('anfitrion').val() === auth.uid && (!newData.exists() || newData.child('anfitrion').val() === auth.uid)) || (!newData.exists() && data.child('creada').isNumber() && data.child('creada').val() < now - 86400000))",
+        "anfitrion": { ".validate": "newData.isString() && newData.val().length <= 128 && (!data.exists() || newData.val() === data.val())" },
+        "nombre": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 30" },
+        "creada": { ".validate": "newData.isNumber() && (data.exists() ? newData.val() === data.val() : newData.val() === now)" },
+        "estado": { ".validate": "newData.isString() && newData.val().matches(/^(espera|rezando|terminada)$/)" },
+        "cfg": { ".validate": "newData.isString() && newData.val().length <= 1500" },
+        "intencion": { ".validate": "newData.isString() && newData.val().length <= 400" },
+        "paso": {
+          ".write": "auth != null && data.parent().child('guia').val() === auth.uid && data.parent().child('estado').val() === 'rezando' && data.parent().child('creada').val() > now - 86400000",
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 2000"
+        },
+        "guia": { ".validate": "newData.isString() && (newData.val() === newData.parent().child('anfitrion').val() || newData.parent().child('participantes').child(newData.val()).exists())" },
+        "participantes": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid && (!newData.exists() || (root.child('salas').child($codigo).child('creada').val() > now - 86400000 && root.child('salas').child($codigo).child('estado').val() !== 'terminada'))",
+            ".validate": "newData.hasChildren(['nombre', 'entro'])",
+            "nombre": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 30" },
+            "entro": { ".validate": "newData.isNumber() && newData.val() <= now" },
+            "$otro": { ".validate": false }
+          }
+        },
+        "$otro": { ".validate": false }
+      }
+    },
+    "caducan": {
+      ".read": "auth != null && query.orderByValue && query.endAt != null && query.endAt < now - 86400000 && query.limitToFirst != null && query.limitToFirst <= 20",
+      ".indexOn": ".value",
+      "$codigo": {
+        ".write": "auth != null && ((!data.exists() && newData.parent().parent().child('salas').child($codigo).child('anfitrion').val() === auth.uid) || (!newData.exists() && (root.child('salas').child($codigo).child('anfitrion').val() === auth.uid || (data.isNumber() && data.val() < now - 86400000))))",
+        ".validate": "newData.isNumber() && newData.val() === now"
+      }
+    }
+  }
+}

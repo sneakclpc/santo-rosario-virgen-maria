@@ -10,6 +10,7 @@ Sitio estático (HTML, CSS y JavaScript, sin dependencias) publicado con GitHub 
 - **Oraciones opcionales:** Señor ábreme los labios, Acto de contrición, Credo, Oración de Fátima, jaculatoria, intenciones del Papa, Salve, Letanías Lauretanas, Bajo tu amparo, Consagración «Oh Señora mía», Acordaos, Bendita sea tu pureza, San Miguel y la oración final.
 - **Modo guía y respuesta** para rezar en familia, en grupo o en el carro: la voz dice la primera parte y deja la pausa para responder.
 - **Lectura en voz alta** con la voz del dispositivo, avance automático y pantalla siempre encendida.
+- **Rezar en grupo:** quien crea la sala comparte un código QR; los demás esperan hasta que empiece y luego todos ven la misma oración y la misma cuenta. El anfitrión puede pasar la guía a otra persona.
 - **Tamaño de letra** ajustable, **modo noche**, botón **Compartir**, uso con teclado (← →) y funcionamiento **sin conexión**.
 
 ## Probar en tu computadora
@@ -26,9 +27,18 @@ Cada `git push` a la rama `main` actualiza la página en uno o dos minutos. Cuan
 
 ## Seguridad y privacidad
 
-- No hay servidores, cuentas, cookies ni rastreo. La intención y las preferencias se guardan solo en el navegador de cada persona.
-- La página declara una política de seguridad de contenido (CSP) que solo permite cargar archivos del propio sitio.
+- Sin cuentas, cookies ni rastreo. La intención y las preferencias se guardan solo en el navegador de cada persona.
+- La página declara una política de seguridad de contenido (CSP) que solo permite cargar archivos del propio sitio y, para las salas, conectarse a Firebase.
+- **Salas en grupo:** usan Firebase (Google) con una identidad anónima por pestaña, sin correo ni contraseña. Cada sala guarda solo el nombre que escribe cada persona, los misterios elegidos, la intención del anfitrión y el paso actual. Las reglas de [firebase/reglas.json](firebase/reglas.json) hacen que solo quien tiene el código pueda verla, que solo el anfitrión y quien guía muevan el rosario, y que nadie pueda escribir el nombre de otro. La sala se borra cuando el anfitrión la cierra; si nadie la cierra, deja de poder abrirse a las 24 horas y se borra la próxima vez que el anfitrión abre la app.
 - Las fuentes tipográficas están alojadas en el proyecto: ninguna visita se envía a terceros.
+
+## Activar las salas en grupo
+
+1. En un proyecto de Firebase, activa **Authentication → Anónimo** y crea una **Realtime Database**.
+2. Pega el contenido de [firebase/reglas.json](firebase/reglas.json) en **Realtime Database → Reglas** y publica.
+3. Escribe `apiKey` y `databaseURL` en [js/salas-config.js](js/salas-config.js) y añade el dominio de la base de datos a `connect-src` en la CSP de [index.html](index.html).
+
+Mientras `CONFIG_SALAS` sea `null`, la app funciona igual pero sin el apartado «Rezar en grupo».
 
 ## Fuentes
 

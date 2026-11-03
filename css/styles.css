@@ -442,3 +442,51 @@ body[data-misterio="dolorosos"] .misterio-card { background: linear-gradient(180
 }
 
 .estado-prueba { font-size: 0.82rem; color: var(--tinta-suave); margin: 6px 0 0; }
+
+/* ---------- Rezar en grupo ---------- */
+.grupo { margin-top: 22px; }
+.grupo-intro { color: var(--tinta-suave); margin: 0 0 14px; }
+.campo-texto { display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem; color: var(--tinta-suave); }
+.campo-texto input {
+  font: 1rem var(--texto); color: var(--tinta); padding: 10px 14px; border-radius: 12px;
+  border: 1.5px solid var(--linea); background: var(--superficie-2); width: 100%;
+}
+.campo-texto input:focus { outline: none; border-color: var(--celeste-fuerte); box-shadow: 0 0 0 3px var(--celeste); }
+.grupo-acciones { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 14px; }
+.grupo-nota { margin: 0; font-size: 0.85rem; color: var(--tinta-suave); flex: 1; min-width: 200px; }
+.grupo-codigo { display: flex; gap: 10px; align-items: flex-end; margin-top: 20px; padding-top: 18px; border-top: 1px dashed var(--linea); }
+.grupo-codigo .campo-texto { flex: 1; min-width: 0; }
+#codigoGrupo { text-transform: uppercase; letter-spacing: 0.18em; font-weight: 500; }
+
+#sala { min-height: 100vh; }
+.barra-hueco { width: 70px; flex: none; }
+.sala-cuerpo { max-width: 560px; margin: 0 auto; padding: 18px 16px 40px; }
+.sala-tarjeta { text-align: center; }
+.sala-pre { font-family: var(--titulo); font-style: italic; color: var(--oro); font-size: 1.15rem; margin: 0; min-height: 1.4em; }
+.sala-titulo { font-size: clamp(1.8rem, 6vw, 2.4rem); margin: 2px 0 10px; }
+.sala-tarjeta .intencion { text-align: left; }
+.sala-entrar { display: grid; gap: 12px; margin: 16px 0 6px; text-align: left; }
+.sala-estado { color: var(--tinta-oro); margin: 14px 0; min-height: 1.6em; }
+.sala-invitar { margin: 20px auto 0; padding: 16px; border: 1px solid var(--linea); border-radius: var(--radio); background: var(--superficie-2); }
+.sala-qr { width: min(220px, 64vw); margin: 0 auto; background: #ffffff; padding: 6px; border-radius: 12px; }
+.sala-qr svg { display: block; width: 100%; height: auto; }
+.sala-codigo { margin: 10px 0 0; font-size: 0.85rem; color: var(--tinta-suave); }
+.sala-codigo strong { display: block; font-family: var(--texto); font-size: 1.7rem; letter-spacing: 0.18em; color: var(--tinta); }
+.sala-sub { font-size: 1.3rem; margin: 22px 0 8px; }
+.sala-personas { list-style: none; padding: 0; margin: 0 auto; max-width: 360px; text-align: left; }
+.sala-personas li { display: flex; justify-content: space-between; gap: 10px; padding: 8px 12px; border-bottom: 1px dashed var(--linea); }
+.sala-personas .rol { font-size: 0.8rem; color: var(--oro); white-space: nowrap; }
+.sala-consejo { font-size: 0.85rem; color: var(--tinta-suave); margin: 18px 0 0; }
+
+.banda-sala {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 12px;
+  padding: 6px 12px; font-size: 0.85rem; background: var(--rosa); color: var(--rosa-tinta); text-align: center;
+}
+.banda-sala.sin-conexion { background: var(--oro-suave); color: var(--tinta-oro); }
+.banda-guia { display: inline-flex; align-items: center; gap: 6px; }
+.banda-guia select {
+  font: 0.85rem var(--texto); color: var(--tinta); padding: 3px 8px; border-radius: 8px;
+  border: 1px solid var(--linea); background: var(--superficie); max-width: 180px;
+}
+.sigue-guia { flex: 1; margin: 0; text-align: center; color: var(--tinta-suave); font-size: 0.9rem; padding: 0.6rem 0; }
+.sala-sub span { font-family: var(--texto); font-size: 0.8em; font-weight: 400; color: var(--tinta-suave); }
